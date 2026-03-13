@@ -13,7 +13,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { signup } from "@/lib/api/auth"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function SignupForm({
   className,
@@ -44,22 +44,30 @@ export default function SignupForm({
 
     setLoading(true)
 
-    const data = await signup(email, password)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name
+        }
+      }
+    })
 
     setLoading(false)
 
-    if (data.error) {
-      setError(data.error)
+    if (error) {
+      setError(error.message)
       return
     }
 
     setSuccess("Account created successfully. Redirecting to login...")
 
     setTimeout(() => {
-      router.push("/login")
+      router.replace("/login")
     }, 1200)
   }
-
+  
   return (
     <form
       onSubmit={handleSubmit}

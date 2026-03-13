@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-import { forgotPassword } from "@/lib/api/auth"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function ForgotPasswordForm({
   className,
@@ -33,12 +33,14 @@ export default function ForgotPasswordForm({
 
     setLoading(true)
 
-    const data = await forgotPassword(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
 
     setLoading(false)
 
-    if (data.error) {
-      setError(data.error)
+    if (error) {
+      setError(error.message)
       return
     }
 

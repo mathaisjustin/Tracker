@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-import { login } from "@/lib/api/auth"
+import { supabase } from "@/lib/supabaseClient"
 
 export default function LoginForm({
   className,
@@ -28,23 +28,35 @@ export default function LoginForm({
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
+
     e.preventDefault()
 
     setLoading(true)
 
-    const data = await login(email, password)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
     setLoading(false)
 
-    if (data.error) {
-      alert(data.error)
+    if (error) {
+      alert(error.message)
       return
     }
 
-    // Save token
-    localStorage.setItem("access_token", data.session.access_token)
+    const user = data.user
 
-    router.push("/dashboard")
+    if (!user) {
+      alert("Login failed")
+      return
+    }
+
+    // Save login time for auto logout
+    localStorage.setItem("login_time", Date.now().toString())
+
+    // Redirect — guards will handle the rest
+    router.replace("/dashboard")
   }
 
   return (
