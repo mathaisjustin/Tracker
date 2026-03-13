@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Arimo } from "next/font/google"
 import "./globals.css";
+
+const arimo = Arimo({
+  subsets: ["latin"],
+  variable: "--font-arimo",
+})
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,9 +29,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${arimo.variable} font-sans antialiased`}
       >
         {children}
       </body>
