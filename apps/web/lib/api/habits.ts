@@ -72,6 +72,33 @@ export async function completeHabit(_habitId: string, _date: string): Promise<vo
 }
 
 /**
+ * Create a new habit.
+ * POST /api/habits
+ */
+export async function createHabit(
+  userId: string,
+  payload: {
+    name: string
+    color: string
+    type: "good" | "bad"
+    unit: string
+    base_cost?: number
+    daily_limit?: number
+  }
+): Promise<BackendHabit> {
+  if (!API_BASE_URL) throw new Error("API URL not configured")
+  const res = await fetch(`${API_BASE_URL}/habits`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, ...payload }),
+  })
+  const data = await res.json()
+  if (!res.ok)
+    throw new Error(data?.error?.message ?? "Failed to create habit")
+  return Array.isArray(data) ? data[0] : data
+}
+
+/**
  * Get completion status for dates (stub - wire when backend supports)
  */
 export async function getDateStatuses(dates: string[]): Promise<DateStatus[]> {
