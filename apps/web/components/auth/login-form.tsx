@@ -86,6 +86,7 @@ export default function LoginForm({
       alert(error.message)
     }
   }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -146,11 +147,21 @@ export default function LoginForm({
 
         <Field className="flex flex-col gap-3">
 
-          <Button variant="outline" type="button" className="w-full">
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full"
+            onClick={handleGoogleLogin}
+          >
             Login with Google
           </Button>
 
-          <Button variant="outline" type="button" className="w-full">
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full"
+            onClick={handleGithubLogin}
+          >
             Login with GitHub
           </Button>
 

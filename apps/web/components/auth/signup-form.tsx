@@ -18,7 +18,7 @@ import { supabase } from "@/lib/supabaseClient"
 export default function SignupForm({
   className,
   ...props
-}: React.ComponentProps<"form">) {
+}: React.FormHTMLAttributes<HTMLFormElement>) {
 
   const router = useRouter()
 
@@ -68,6 +68,32 @@ export default function SignupForm({
     }, 1200)
   }
   
+  async function handleGoogleSignup() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${location.origin}/dashboard`,
+      },
+    })
+  
+    if (error) {
+      setError(error.message)
+    }
+  }
+  
+  async function handleGithubSignup() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${location.origin}/dashboard`,
+      },
+    })
+  
+    if (error) {
+      setError(error.message)
+    }
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -157,11 +183,21 @@ export default function SignupForm({
 
         <Field className="flex flex-col gap-3">
 
-          <Button variant="outline" type="button" className="w-full">
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full"
+            onClick={handleGoogleSignup}
+          >
             Sign up with Google
           </Button>
 
-          <Button variant="outline" type="button" className="w-full">
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full"
+            onClick={handleGithubSignup}
+          >
             Sign up with GitHub
           </Button>
 
