@@ -1,19 +1,26 @@
+"use client"
+
+import { HabitsPageShell } from "@/components/habits"
+import { useHabits } from "@/hooks/useHabits"
+
 export default function HabitsPage() {
+  const {
+    habits,
+    dateStatuses,
+    selectedDate,
+    setSelectedDate,
+    logProgress,
+    completeHabit,
+  } = useHabits()
 
   return (
-
-    <div>
-
-      <h1 className="text-2xl font-semibold">
-        Habits
-      </h1>
-
-      <p className="text-zinc-400 mt-4">
-        Habit tracking UI will go here
-      </p>
-
-    </div>
-
+    <HabitsPageShell
+      habits={habits}
+      dateStatuses={dateStatuses}
+      selectedDate={selectedDate}
+      onSelectDate={setSelectedDate}
+      onLogProgress={logProgress}
+      onComplete={completeHabit}
+    />
   )
-
 }

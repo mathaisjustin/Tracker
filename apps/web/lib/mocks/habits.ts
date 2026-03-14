@@ -1,0 +1,48 @@
+import type { Habit } from "@/lib/types/habits"
+
+export const MOCK_HABITS: Habit[] = [
+  {
+    id: "1",
+    name: "Walk",
+    icon: "walk",
+    target: "10k",
+    targetUnit: "steps",
+    current: 10000,
+    completed: true,
+    streak: 7,
+    streakType: "streak",
+  },
+  {
+    id: "2",
+    name: "Water",
+    icon: "water",
+    target: "8",
+    targetUnit: "glasses",
+    current: 4,
+    completed: false,
+    streak: 4,
+    streakType: "streak",
+  },
+  {
+    id: "3",
+    name: "Read",
+    icon: "read",
+    target: "30m",
+    targetUnit: "minutes",
+    current: 0,
+    completed: false,
+    streak: 2,
+    streakType: "miss",
+  },
+  {
+    id: "4",
+    name: "Meditate",
+    icon: "meditate",
+    target: "1",
+    targetUnit: "sessions",
+    current: 1,
+    completed: true,
+    streak: 12,
+    streakType: "streak",
+  },
+]
