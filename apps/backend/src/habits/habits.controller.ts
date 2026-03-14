@@ -29,12 +29,18 @@ export const createHabit = async (req: any, res: any) => {
 export const getHabits = async (req: any, res: any) => {
 
   const { user_id } = req.params
+  const { date } = req.query
+
+  const selectedDate = date || new Date().toISOString().split("T")[0]
+
+  const endOfDay = `${selectedDate}T23:59:59`
 
   const { data, error } = await supabase
     .from("habits")
     .select("*")
     .eq("user_id", user_id)
-    .eq("is_archived", false)
+    .lte("created_at", endOfDay)
+    .or(`archived_at.is.null,archived_at.gt.${endOfDay}`)
 
   if (error) {
     return res.status(400).json(error)
@@ -50,7 +56,10 @@ export const archiveHabit = async (req: any, res: any) => {
 
     const { data, error } = await supabase
       .from("habits")
-      .update({ is_archived: true })
+      .update({
+        is_archived: true,
+        archived_at: new Date().toISOString()
+      })
       .eq("id", id)
       .select()
 
@@ -76,7 +85,10 @@ export const bulkArchiveHabits = async (req: any, res: any) => {
 
     const { data, error } = await supabase
       .from("habits")
-      .update({ is_archived: true })
+      .update({
+        is_archived: true,
+        archived_at: new Date().toISOString()
+      })
       .in("id", ids)
       .select()
 

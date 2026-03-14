@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { format, addDays, startOfWeek } from "date-fns"
-import { MOCK_HABITS } from "@/lib/mocks/habits"
 import type { Habit } from "@/lib/types/habits"
 import type { DateStatus } from "@/lib/types/habits"
 
@@ -23,7 +22,7 @@ function getMockDateStatuses(selectedDate: Date): DateStatus[] {
 
 export function useHabits() {
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [habits, setHabits] = useState<Habit[]>(MOCK_HABITS)
+  const [habits, setHabits] = useState<Habit[]>([])
 
   const dateStatuses = getMockDateStatuses(selectedDate)
 
