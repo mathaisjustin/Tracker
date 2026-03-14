@@ -18,6 +18,7 @@ interface HabitsPageShellProps {
   onSelectDate: (date: Date) => void
   onLogProgress?: (habitId: string) => void
   onComplete?: (habitId: string) => void
+  isLoading?: boolean
 }
 
 export function HabitsPageShell({
@@ -27,6 +28,7 @@ export function HabitsPageShell({
   onSelectDate,
   onLogProgress,
   onComplete,
+  isLoading = false,
 }: HabitsPageShellProps) {
   const [filter, setFilter] = useState<FilterTab>("all")
 
@@ -43,12 +45,16 @@ export function HabitsPageShell({
       />
       <FilterTabs activeFilter={filter} onFilterChange={setFilter} />
       <HabitCompletionSummary completed={completed} total={total} />
+      {isLoading ? (
+        <p className="text-sm text-zinc-400">Loading habits...</p>
+      ) : (
       <HabitList
         habits={habits}
         filter={filter}
         onLogProgress={onLogProgress}
         onComplete={onComplete}
       />
+      )}
     </div>
   )
 }

@@ -6,7 +6,8 @@ export const createHabitService = async (
   color: string,
   type: string,
   unit: string,
-  base_cost: number
+  base_cost: number,
+  daily_limit?: number   // NEW
 ) => {
 
   /* -------------------------------- */
@@ -62,7 +63,8 @@ export const createHabitService = async (
       color,
       type,
       unit,
-      base_cost
+      base_cost,
+      daily_limit: daily_limit ?? null   // NEW
     })
     .select()
 

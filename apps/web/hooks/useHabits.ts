@@ -1,30 +1,66 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format, addDays, startOfWeek } from "date-fns"
+import { useAuth } from "@/lib/AuthProvider"
+import { getHabits, getDateStatuses } from "@/lib/api/habits"
 import type { Habit } from "@/lib/types/habits"
 import type { DateStatus } from "@/lib/types/habits"
 
-function getMockDateStatuses(selectedDate: Date): DateStatus[] {
+function getWeekDates(selectedDate: Date): string[] {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
-  const dates: DateStatus[] = []
-  const today = format(new Date(), "yyyy-MM-dd")
+  const dates: string[] = []
   for (let i = 0; i < 7; i++) {
     const d = addDays(weekStart, i)
-    const dateStr = format(d, "yyyy-MM-dd")
-    dates.push({
-      date: dateStr,
-      hasActivity: dateStr <= today, // mock: past and today have dots
-    })
+    dates.push(format(d, "yyyy-MM-dd"))
   }
   return dates
 }
 
 export function useHabits() {
+  const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [habits, setHabits] = useState<Habit[]>([])
+  const [dateStatuses, setDateStatuses] = useState<DateStatus[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  const dateStatuses = getMockDateStatuses(selectedDate)
+  const dateStr = format(selectedDate, "yyyy-MM-dd")
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHabits([])
+      const weekDates = getWeekDates(selectedDate)
+      setDateStatuses(weekDates.map((d) => ({ date: d, hasActivity: false })))
+      return
+    }
+
+    const userId = user.id
+    const weekDates = getWeekDates(selectedDate)
+    let cancelled = false
+
+    async function fetchData() {
+      setIsLoading(true)
+      try {
+        const [habitsData, statusesData] = await Promise.all([
+          getHabits(userId, dateStr),
+          getDateStatuses(weekDates),
+        ])
+        if (!cancelled) {
+          setHabits(habitsData)
+          setDateStatuses(statusesData)
+        }
+      } catch (err) {
+        if (!cancelled) setHabits([])
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    fetchData()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, dateStr])
 
   const logProgress = (habitId: string) => {
     setHabits((prev) =>
@@ -56,7 +92,7 @@ export function useHabits() {
     dateStatuses,
     selectedDate,
     setSelectedDate: (d: Date) => setSelectedDate(d),
-    isLoading: false,
+    isLoading,
     logProgress,
     completeHabit,
   }

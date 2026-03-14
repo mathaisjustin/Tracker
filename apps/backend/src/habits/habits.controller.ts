@@ -4,7 +4,15 @@ import { createHabitService } from "./habits.service"
 export const createHabit = async (req: any, res: any) => {
   try {
 
-    const { user_id, name, color, type, unit, base_cost } = req.body
+    const {
+      user_id,
+      name,
+      color,
+      type,
+      unit,
+      base_cost,
+      daily_limit   // NEW
+    } = req.body
 
     const data = await createHabitService(
       user_id,
@@ -12,7 +20,8 @@ export const createHabit = async (req: any, res: any) => {
       color,
       type,
       unit,
-      base_cost
+      base_cost,
+      daily_limit   // NEW
     )
 
     res.json(data)

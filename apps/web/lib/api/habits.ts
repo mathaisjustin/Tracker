@@ -3,62 +3,77 @@ import type { DateStatus } from "@/lib/types/habits"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
-/**
- * Fetch habits for a given date (stub - replace with real backend call)
- */
-export async function getHabitsForDate(date: string): Promise<Habit[]> {
-  // TODO: GET /habits?date={date}
-  if (!API_BASE_URL) return []
-  const res = await fetch(`${API_BASE_URL}/habits?date=${date}`)
-  if (!res.ok) throw new Error("Failed to fetch habits")
-  return res.json()
+/** Backend habit shape from GET /habits/:user_id */
+export interface BackendHabit {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  type: string
+  unit: string
+  base_cost: number
+  created_at: string
+  archived_at: string | null
+}
+
+function mapBackendToHabit(backend: BackendHabit): Habit {
+  const iconMap: Record<string, string> = {
+    steps: "walk",
+    water: "water",
+    glasses: "water",
+    minutes: "read",
+    sessions: "meditate",
+  }
+  const icon = iconMap[backend.type?.toLowerCase()] ?? iconMap[backend.unit?.toLowerCase()] ?? "read"
+  const target = backend.unit === "steps" ? "10k" : backend.unit || "1"
+  const targetUnit = backend.unit === "steps" ? "steps" : backend.unit === "glasses" ? "glasses" : backend.unit || "minutes"
+
+  return {
+    id: backend.id,
+    name: backend.name,
+    icon,
+    target,
+    targetUnit,
+    current: 0,
+    completed: false,
+    streak: 0,
+    streakType: "streak",
+  }
 }
 
 /**
- * Log progress for a habit (stub - replace with real backend call)
+ * Fetch habits for a user and date.
+ * GET /habits/:user_id?date=YYYY-MM-DD
+ */
+export async function getHabits(userId: string, date: string): Promise<Habit[]> {
+  if (!API_BASE_URL) return []
+  const res = await fetch(`${API_BASE_URL}/habits/${userId}?date=${encodeURIComponent(date)}`)
+  if (!res.ok) throw new Error("Failed to fetch habits")
+  const data: BackendHabit[] = await res.json()
+  return data.map(mapBackendToHabit)
+}
+
+/**
+ * Log progress for a habit (stub - wire to entries API later)
  */
 export async function logProgress(
-  habitId: string,
-  amount: number,
-  date: string
+  _habitId: string,
+  _amount: number,
+  _date: string
 ): Promise<void> {
-  // TODO: POST /habits/{id}/progress
-  if (!API_BASE_URL) return
-  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/progress`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount, date }),
-  })
-  if (!res.ok) throw new Error("Failed to log progress")
+  // TODO: POST /entries with habit_id, user_id, quantity
 }
 
 /**
- * Mark habit as complete for a date (stub - replace with real backend call)
+ * Mark habit as complete (stub - wire when backend supports)
  */
-export async function completeHabit(
-  habitId: string,
-  date: string
-): Promise<void> {
-  // TODO: POST /habits/{id}/complete
-  if (!API_BASE_URL) return
-  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/complete`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date }),
-  })
-  if (!res.ok) throw new Error("Failed to complete habit")
+export async function completeHabit(_habitId: string, _date: string): Promise<void> {
+  // TODO
 }
 
 /**
- * Get completion status for a list of dates (stub - replace with real backend call)
+ * Get completion status for dates (stub - wire when backend supports)
  */
-export async function getDateStatuses(
-  dates: string[]
-): Promise<DateStatus[]> {
-  // TODO: GET /habits/status?dates=...
-  if (!API_BASE_URL) return dates.map((d) => ({ date: d, hasActivity: false }))
-  const params = new URLSearchParams({ dates: dates.join(",") })
-  const res = await fetch(`${API_BASE_URL}/habits/status?${params}`)
-  if (!res.ok) throw new Error("Failed to fetch date statuses")
-  return res.json()
+export async function getDateStatuses(dates: string[]): Promise<DateStatus[]> {
+  return dates.map((date) => ({ date, hasActivity: false }))
 }

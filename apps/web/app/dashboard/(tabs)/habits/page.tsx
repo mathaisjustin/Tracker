@@ -9,6 +9,7 @@ export default function HabitsPage() {
     dateStatuses,
     selectedDate,
     setSelectedDate,
+    isLoading,
     logProgress,
     completeHabit,
   } = useHabits()
@@ -21,6 +22,7 @@ export default function HabitsPage() {
       onSelectDate={setSelectedDate}
       onLogProgress={logProgress}
       onComplete={completeHabit}
+      isLoading={isLoading}
     />
   )
 }
