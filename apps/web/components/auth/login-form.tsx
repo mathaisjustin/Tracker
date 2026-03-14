@@ -18,6 +18,8 @@ import { supabase } from "@/lib/supabaseClient"
 
 export default function LoginForm({
   className,
+  ref: _ref,
+  key: _key,
   ...props
 }: React.ComponentProps<"form">) {
 
@@ -59,6 +61,31 @@ export default function LoginForm({
     router.replace("/dashboard")
   }
 
+  async function handleGoogleLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    })
+  
+    if (error) {
+      alert(error.message)
+    }
+  }
+
+  async function handleGithubLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    })
+  
+    if (error) {
+      alert(error.message)
+    }
+  }
   return (
     <form
       onSubmit={handleSubmit}
