@@ -7,7 +7,8 @@ export const createHabitService = async (
   type: string,
   unit: string,
   base_cost: number,
-  daily_limit?: number   // NEW
+  daily_limit?: number,
+  created_at?: string
 ) => {
 
   /* -------------------------------- */
@@ -64,7 +65,8 @@ export const createHabitService = async (
       type,
       unit,
       base_cost,
-      daily_limit: daily_limit ?? null   // NEW
+      daily_limit: daily_limit ?? null,
+      created_at: created_at ?? undefined
     })
     .select()
 

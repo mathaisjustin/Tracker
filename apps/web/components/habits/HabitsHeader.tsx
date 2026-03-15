@@ -1,17 +1,20 @@
-import { format } from "date-fns"
+import { format, isToday, isYesterday, isTomorrow, differenceInCalendarDays } from "date-fns"
 
 interface HabitsHeaderProps {
   date: Date
-  title?: string
 }
 
-export function HabitsHeader({ date, title = "Today" }: HabitsHeaderProps) {
-  const formattedDate = format(date, "EEEE, MMMM d")
+function getDateLabel(date: Date): string {
+  if (isToday(date)) return "Today"
+  if (isYesterday(date)) return "Yesterday"
+  if (isTomorrow(date)) return "Tomorrow"
+  return format(date, "EEEE, MMMM d")
+}
 
+export function HabitsHeader({ date }: HabitsHeaderProps) {
   return (
     <header>
-      <h1 className="text-2xl font-bold text-white">{title}</h1>
-      <p className="mt-1 text-sm text-zinc-400">{formattedDate}</p>
+      <h1 className="text-2xl font-bold text-white">{getDateLabel(date)}</h1>
     </header>
   )
 }

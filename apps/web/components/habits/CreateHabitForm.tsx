@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { z } from "zod"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { isValid, parseISO } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,20 +48,34 @@ const PRESET_COLORS = [
   "#ffffff",
 ]
 
+function getRandomColor(): string {
+  return PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]
+}
+
 export function CreateHabitForm() {
   const { user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formState, setFormState] = useState<Partial<CreateHabitFormData>>({
     name: "",
-    type: "bad",
+    type: "good",
     unit: "",
     base_cost: undefined,
     daily_limit: undefined,
-    color: "#f97316",
+    color: getRandomColor(),
   })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const selectedDateParam = searchParams.get("date")
+  const selectedDate = selectedDateParam
+    ? parseISO(selectedDateParam)
+    : null
+  const hasValidSelectedDate = selectedDate ? isValid(selectedDate) : false
+  const createdAtForSelectedDate = hasValidSelectedDate
+    ? `${selectedDateParam}T00:00:00.000Z`
+    : undefined
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,8 +115,9 @@ export function CreateHabitForm() {
         unit: result.data.unit,
         base_cost: result.data.base_cost,
         daily_limit: result.data.daily_limit,
+        created_at: createdAtForSelectedDate,
       })
-      router.push("/dashboard/habits")
+      router.push(hasValidSelectedDate ? `/dashboard/habits?date=${selectedDateParam}` : "/dashboard/habits")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create habit")
     } finally {
@@ -112,7 +129,7 @@ export function CreateHabitForm() {
     <div className="space-y-6">
       <header className="flex items-center gap-4">
         <Link
-          href="/dashboard/habits"
+          href={hasValidSelectedDate ? `/dashboard/habits?date=${selectedDateParam}` : "/dashboard/habits"}
           className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           aria-label="Back to habits"
         >
@@ -120,6 +137,12 @@ export function CreateHabitForm() {
         </Link>
         <h1 className="text-2xl font-bold text-white">Create Habit</h1>
       </header>
+
+      {hasValidSelectedDate && (
+        <p className="text-sm text-zinc-400">
+          New habit starts on {selectedDateParam}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
@@ -136,7 +159,6 @@ export function CreateHabitForm() {
           <Input
             value={formState.name ?? ""}
             onChange={(e) => setFormState((s) => ({ ...s, name: e.target.value }))}
-            placeholder="e.g. Cigarettes"
             className="bg-zinc-900 border-zinc-700 text-white"
           />
           {fieldErrors.name && <FieldError>{fieldErrors.name}</FieldError>}
@@ -179,7 +201,6 @@ export function CreateHabitForm() {
           <Input
             value={formState.unit ?? ""}
             onChange={(e) => setFormState((s) => ({ ...s, unit: e.target.value }))}
-            placeholder="e.g. count, cups, minutes, km"
             className="bg-zinc-900 border-zinc-700 text-white"
           />
           <FieldDescription>e.g. count, cups, minutes, km</FieldDescription>
@@ -188,7 +209,7 @@ export function CreateHabitForm() {
 
         <Field>
           <FieldLabel>
-            BASE COST <span className="text-zinc-500 font-normal">(optional)</span>
+            BASE COST
           </FieldLabel>
           <Input
             type="number"
@@ -209,7 +230,7 @@ export function CreateHabitForm() {
 
         <Field>
           <FieldLabel>
-            DAILY LIMIT <span className="text-zinc-500 font-normal">(optional)</span>
+            DAILY LIMIT
           </FieldLabel>
           <Input
             type="number"

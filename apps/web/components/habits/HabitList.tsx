@@ -7,8 +7,10 @@ import type { FilterTab } from "@/lib/types/habits"
 interface HabitListProps {
   habits: Habit[]
   filter: FilterTab
+  selectedDate: Date
   onLogProgress?: (habitId: string) => void
   onComplete?: (habitId: string) => void
+  onArchive?: (habitId: string) => void
 }
 
 function filterHabits(habits: Habit[], filter: FilterTab): Habit[] {
@@ -21,8 +23,10 @@ function filterHabits(habits: Habit[], filter: FilterTab): Habit[] {
 export function HabitList({
   habits,
   filter,
+  selectedDate,
   onLogProgress,
   onComplete,
+  onArchive,
 }: HabitListProps) {
   const filtered = filterHabits(habits, filter)
 
@@ -32,8 +36,10 @@ export function HabitList({
         <HabitItem
           key={habit.id}
           habit={habit}
+          selectedDate={selectedDate}
           onPlus={onLogProgress}
           onComplete={onComplete}
+          onArchive={onArchive}
         />
       ))}
     </div>

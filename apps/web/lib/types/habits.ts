@@ -10,9 +10,13 @@ export interface Habit {
   completed: boolean
   streak: number // positive = streak, negative = miss
   streakType: "streak" | "miss"
+  color: string // hex color from backend
 }
 
 export interface DateStatus {
   date: string // ISO date
   hasActivity: boolean
+  completionRate: number // 0..1 based on tracked habits / active habits
+  trackedHabits: number
+  totalHabits: number
 }

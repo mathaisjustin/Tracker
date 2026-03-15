@@ -3,12 +3,10 @@
 import { useState } from "react"
 import { DateSelector } from "./DateSelector"
 import { FilterTabs } from "./FilterTabs"
-import { HabitCompletionSummary } from "./HabitCompletionSummary"
 import { HabitList } from "./HabitList"
 import { HabitsHeader } from "./HabitsHeader"
 import type { FilterTab } from "@/lib/types/habits"
 import type { DateStatus } from "@/lib/types/habits"
-
 import type { Habit } from "@/lib/types/habits"
 
 interface HabitsPageShellProps {
@@ -18,6 +16,7 @@ interface HabitsPageShellProps {
   onSelectDate: (date: Date) => void
   onLogProgress?: (habitId: string) => void
   onComplete?: (habitId: string) => void
+  onArchive?: (habitId: string) => void
   isLoading?: boolean
 }
 
@@ -28,12 +27,10 @@ export function HabitsPageShell({
   onSelectDate,
   onLogProgress,
   onComplete,
+  onArchive,
   isLoading = false,
 }: HabitsPageShellProps) {
   const [filter, setFilter] = useState<FilterTab>("all")
-
-  const completed = habits.filter((h) => h.completed).length
-  const total = habits.length
 
   return (
     <div className="space-y-6">
@@ -44,16 +41,17 @@ export function HabitsPageShell({
         datesWithStatus={dateStatuses}
       />
       <FilterTabs activeFilter={filter} onFilterChange={setFilter} />
-      <HabitCompletionSummary completed={completed} total={total} />
       {isLoading ? (
         <p className="text-sm text-zinc-400">Loading habits...</p>
       ) : (
-      <HabitList
-        habits={habits}
-        filter={filter}
-        onLogProgress={onLogProgress}
-        onComplete={onComplete}
-      />
+        <HabitList
+          habits={habits}
+          filter={filter}
+          selectedDate={selectedDate}
+          onLogProgress={onLogProgress}
+          onComplete={onComplete}
+          onArchive={onArchive}
+        />
       )}
     </div>
   )

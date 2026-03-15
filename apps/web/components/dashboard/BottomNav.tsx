@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faHouse } from "@fortawesome/free-solid-svg-icons"
 import { CirclePlus, ScrollText, Settings } from "lucide-react"
@@ -10,11 +10,16 @@ import { cn } from "@/lib/utils"
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const isHabitsPage = pathname === "/dashboard/habits"
+  const selectedDate = searchParams.get("date")
+  const createHref = selectedDate
+    ? `/dashboard/habits/create?date=${encodeURIComponent(selectedDate)}`
+    : "/dashboard/habits/create"
 
   const habitsTab = {
     key: "habits",
-    href: isHabitsPage ? "/dashboard/habits/create" : "/dashboard/habits",
+    href: isHabitsPage ? createHref : "/dashboard/habits",
     isHabits: true,
   }
   const statsTab = { key: "stats", href: "/dashboard/stats", isHabits: false }
