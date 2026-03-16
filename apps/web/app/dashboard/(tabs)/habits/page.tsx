@@ -46,6 +46,7 @@ export default function HabitsPage() {
       onLogProgress={logProgress}
       onComplete={completeHabit}
       onArchive={archiveHabit}
+      onOpenHabit={(habitId) => router.push(`/dashboard/habit/${habitId}`)}
       isLoading={isLoading}
     />
   )

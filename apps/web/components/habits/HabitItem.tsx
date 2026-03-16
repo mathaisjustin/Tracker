@@ -14,6 +14,7 @@ interface HabitItemProps {
   onPlus?: (habitId: string) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onOpen?: (habitId: string) => void
 }
 
 function formatProgress(habit: Habit): string {
@@ -27,7 +28,7 @@ function formatProgress(habit: Habit): string {
   return `${habit.current} / ${habit.target}`
 }
 
-export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive }: HabitItemProps) {
+export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, onOpen }: HabitItemProps) {
   const StreakIcon = habit.streakType === "streak" ? TrendingUp : TrendingDown
   const streakColor = habit.streakType === "streak" ? "text-green-500" : "text-red-500"
   const streakLabel = habit.streakType === "streak"
@@ -125,7 +126,23 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive }
           ) : null}
         </div>
 
-        <div className="relative flex min-h-16 min-w-0 items-center gap-4 rounded-full px-4 py-3" style={{ backgroundColor: habit.color + "20" }}>
+        <div
+          className="relative flex min-h-16 min-w-0 items-center gap-4 rounded-full px-4 py-3"
+          style={{ backgroundColor: habit.color + "20" }}
+          onClick={() => {
+            if (offset === 0) onOpen?.(habit.id)
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (offset !== 0) return
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              onOpen?.(habit.id)
+            }
+          }}
+          aria-label={`Open ${habit.name} details`}
+        >
           <HabitIcon icon={habit.icon} />
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-white">{habit.name}</p>

@@ -1,5 +1,6 @@
 import type { Habit } from "@/lib/types/habits"
 import type { DateStatus } from "@/lib/types/habits"
+import type { HabitEntry } from "@/lib/types/habits"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -185,5 +186,18 @@ export async function getDateStatuses(
   if (!res.ok) throw new Error("Failed to fetch date statuses")
 
   const data = (await res.json()) as DateStatus[]
+  return data
+}
+
+/**
+ * Fetch entries for a single habit.
+ * GET /entries/:habit_id
+ */
+export async function getHabitEntries(habitId: string): Promise<HabitEntry[]> {
+  if (!API_BASE_URL) return []
+  const res = await fetch(`${API_BASE_URL}/entries/${habitId}`)
+  if (!res.ok) throw new Error("Failed to fetch habit entries")
+
+  const data = (await res.json()) as HabitEntry[]
   return data
 }

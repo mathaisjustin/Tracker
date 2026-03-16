@@ -20,3 +20,13 @@ export interface DateStatus {
   trackedHabits: number
   totalHabits: number
 }
+
+export interface HabitEntry {
+  id: string
+  habit_id: string
+  user_id: string
+  quantity: number
+  cost?: number | null
+  note?: string | null
+  created_at: string
+}

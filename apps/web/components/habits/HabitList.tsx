@@ -11,6 +11,7 @@ interface HabitListProps {
   onLogProgress?: (habitId: string) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onOpenHabit?: (habitId: string) => void
 }
 
 function filterHabits(habits: Habit[], filter: FilterTab): Habit[] {
@@ -27,6 +28,7 @@ export function HabitList({
   onLogProgress,
   onComplete,
   onArchive,
+  onOpenHabit,
 }: HabitListProps) {
   const filtered = filterHabits(habits, filter)
 
@@ -40,6 +42,7 @@ export function HabitList({
           onPlus={onLogProgress}
           onComplete={onComplete}
           onArchive={onArchive}
+          onOpen={onOpenHabit}
         />
       ))}
     </div>

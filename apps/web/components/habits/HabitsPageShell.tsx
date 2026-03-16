@@ -17,6 +17,7 @@ interface HabitsPageShellProps {
   onLogProgress?: (habitId: string) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onOpenHabit?: (habitId: string) => void
   isLoading?: boolean
 }
 
@@ -28,6 +29,7 @@ export function HabitsPageShell({
   onLogProgress,
   onComplete,
   onArchive,
+  onOpenHabit,
   isLoading = false,
 }: HabitsPageShellProps) {
   const [filter, setFilter] = useState<FilterTab>("all")
@@ -51,6 +53,7 @@ export function HabitsPageShell({
           onLogProgress={onLogProgress}
           onComplete={onComplete}
           onArchive={onArchive}
+          onOpenHabit={onOpenHabit}
         />
       )}
     </div>
