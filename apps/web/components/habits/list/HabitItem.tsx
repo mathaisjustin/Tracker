@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { Habit } from "@/lib/types/habits"
 
-import { HabitIcon } from "./HabitIcon"
+import { HabitIcon } from "../shared/HabitIcon"
 
 interface HabitItemProps {
   habit: Habit

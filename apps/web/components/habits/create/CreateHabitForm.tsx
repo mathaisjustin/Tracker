@@ -126,11 +126,11 @@ export function CreateHabitForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center gap-4">
+    <div className="h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col gap-6">
+      <header className="-mx-2 flex items-center gap-3">
         <Link
           href={hasValidSelectedDate ? `/dashboard/habits?date=${selectedDateParam}` : "/dashboard/habits"}
-          className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+          className="rounded-lg p-2 -ml-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
           aria-label="Back to habits"
         >
           <ArrowLeft className="size-5" />
@@ -138,13 +138,7 @@ export function CreateHabitForm() {
         <h1 className="text-2xl font-bold text-white">Create Habit</h1>
       </header>
 
-      {hasValidSelectedDate && (
-        <p className="text-sm text-zinc-400">
-          New habit starts on {selectedDateParam}
-        </p>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 overflow-hidden">
         {error && (
           <div
             role="alert"
