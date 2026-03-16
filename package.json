@@ -1,6 +1,7 @@
 {
 "name": "tracker",
 "private": true,
+"packageManager": "npm@10",
 "version": "1.0.0",
 "workspaces": [
 "apps/*",
