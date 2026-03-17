@@ -10,7 +10,7 @@ export interface Profile {
 }
 
 // helper to get token
-const getAuthHeader = async () => {
+const getAuthHeader = async (): Promise<Record<string, string>> => {
   const { data } = await supabase.auth.getSession()
 
   const token = data.session?.access_token
@@ -19,7 +19,7 @@ const getAuthHeader = async () => {
 
   if (!token) {
     console.warn("No auth token yet")
-    return {}
+    return {} // ✅ now typed correctly
   }
 
   return {
