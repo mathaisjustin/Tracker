@@ -2,8 +2,6 @@ import { supabase } from "@/lib/supabaseClient"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!
 
-console.log("API BASE URL:", API_BASE_URL)
-
 export interface Profile {
   id: string
   onboarding_completed: boolean
@@ -14,8 +12,6 @@ const getAuthHeader = async (): Promise<Record<string, string>> => {
   const { data } = await supabase.auth.getSession()
 
   const token = data.session?.access_token
-
-  console.log("TOKEN:", token)
 
   if (!token) {
     console.warn("No auth token yet")
@@ -39,7 +35,6 @@ export const getProfile = async (): Promise<Profile> => {
 
   if (!res.ok) {
     const text = await res.text()
-    console.error("PROFILE ERROR:", text)
     throw new Error("Failed to fetch profile")
   }
 
