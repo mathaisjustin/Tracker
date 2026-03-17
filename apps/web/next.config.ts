@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+console.log("NEXT CONFIG LOADED")
+
 const nextConfig = {
   async rewrites() {
     return [
