@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient"
 
-const API_BASE_URL = "http://139.59.78.34:5000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!
 
 console.log("API BASE URL:", API_BASE_URL)
 
@@ -19,7 +19,6 @@ const getAuthHeader = async (): Promise<Record<string, string>> => {
 
   if (!token) {
     console.warn("No auth token yet")
-    return {} // ✅ now typed correctly
   }
 
   return {

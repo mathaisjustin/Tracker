@@ -9,10 +9,18 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      /\.vercel\.app$/,
-    ],
+    origin: (origin, callback) => {
+      if (
+        !origin || // allow curl/postman
+        origin === "http://localhost:3000" ||
+        origin === "https://tracker.halonix.tech" ||
+        /\.vercel\.app$/.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
