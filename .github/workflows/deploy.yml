@@ -21,7 +21,7 @@ jobs:
 
             cd ~/Tracker
 
-            git pull origin main
+            git pull origin master
 
             cd apps/backend
 
