@@ -23,7 +23,7 @@ export default function AppRouterGuard({
 
   useEffect(() => {
 
-    if (loading) return
+    if (loading || !profile) return
 
     const isAuthRoute = authRoutes.includes(pathname)
 
@@ -54,7 +54,7 @@ export default function AppRouterGuard({
 
   }, [user, profile, loading, pathname, router])
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         Loading Tracker...

@@ -29,14 +29,29 @@ export const getProfile = async (req: Request, res: Response) => {
       .eq("id", user.id)
       .maybeSingle()
 
-    console.log("PROFILE DATA:", data)
-
     if (error) {
       return res.status(400).json({ error: error.message })
     }
 
+    // 🔥 FIX: AUTO-CREATE PROFILE
     if (!data) {
-      return res.status(404).json({ error: "Profile not found" })
+      console.log("Profile not found → creating new profile")
+
+      const { data: newProfile, error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          email: user.email,
+          onboarding_completed: false,
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        return res.status(400).json({ error: insertError.message })
+      }
+
+      return res.json(newProfile)
     }
 
     return res.json(data)

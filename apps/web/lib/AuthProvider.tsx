@@ -35,9 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async () => {
     try {
-      const profile = await getProfile(userId)
+      const profile = await getProfile()
       setProfile(profile)
     } catch (err) {
       console.error("Profile load failed", err)
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (!user) return
-    await loadProfile(user.id)
+    await loadProfile()
   }
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(user)
 
-      await loadProfile(user.id)
+      await loadProfile()
 
       setLoading(false)
     }
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(user)
 
-        await loadProfile(user.id)
+        loadProfile()
       }
     )
 

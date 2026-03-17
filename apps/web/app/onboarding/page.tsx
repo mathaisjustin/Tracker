@@ -20,7 +20,7 @@ export default function OnboardingPage() {
 
     try {
 
-      await completeOnboarding(user.id)
+      await completeOnboarding()
 
       await refreshProfile()
 
