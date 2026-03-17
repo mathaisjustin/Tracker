@@ -11,6 +11,8 @@ import SettingsItem from "@/components/settings/SettingsItem"
 import SettingsProfile from "@/components/settings/SettingsProfile"
 import SettingsToggle from "@/components/settings/SettingsToggle"
 
+import { supabase } from "@/lib/supabaseClient"
+
 import { Key, Bell, Globe, Archive, Flame, Shield, Clock, Palette, Database, Trash2 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -19,6 +21,12 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true)
   const [graceDay, setGraceDay] = useState(true)
   const [partial, setPartial] = useState(false)
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    localStorage.removeItem("login_time")
+    router.push("/login")
+  }
 
   return (
     <div className="min-h-screen bg-black text-white px-4 py-6">
@@ -174,7 +182,10 @@ export default function SettingsPage() {
 
       {/* LOGOUT */}
       <div className="mt-6">
-        <button className="w-full py-3 rounded-xl border border-zinc-700">
+        <button
+          onClick={handleLogout}
+          className="w-full py-3 rounded-xl border border-zinc-700"
+        >
           Log out
         </button>
       </div>
