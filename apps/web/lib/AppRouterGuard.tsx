@@ -54,7 +54,7 @@ export default function AppRouterGuard({
 
   }, [user, profile, loading, pathname, router])
 
-  if (loading || !profile) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         Loading Tracker...

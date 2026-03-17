@@ -15,8 +15,11 @@ const getAuthHeader = async () => {
 
   const token = data.session?.access_token
 
+  console.log("TOKEN:", token)
+
   if (!token) {
-    throw new Error("No auth token")
+    console.warn("No auth token yet")
+    return {}
   }
 
   return {
@@ -36,6 +39,8 @@ export const getProfile = async (): Promise<Profile> => {
   })
 
   if (!res.ok) {
+    const text = await res.text()
+    console.error("PROFILE ERROR:", text)
     throw new Error("Failed to fetch profile")
   }
 

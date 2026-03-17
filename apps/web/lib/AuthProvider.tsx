@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(profile)
     } catch (err) {
       console.error("Profile load failed", err)
-      setProfile(null)
+      setProfile({ id: "", onboarding_completed: false })
     }
   }
 
@@ -80,7 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(user)
 
-      await loadProfile()
+      if (session?.access_token) {
+        await loadProfile()
+      }
 
       setLoading(false)
     }
