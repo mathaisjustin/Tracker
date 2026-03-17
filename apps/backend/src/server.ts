@@ -11,7 +11,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://tracker-mauve-sigma.vercel.app",
+      /\.vercel\.app$/,
     ],
     credentials: true,
   })
