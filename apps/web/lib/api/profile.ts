@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient"
 
-const API_BASE_URL = "/api"
+const API_BASE_URL = "http://139.59.78.34:5000/api"
 
 console.log("API BASE URL:", API_BASE_URL)
 
