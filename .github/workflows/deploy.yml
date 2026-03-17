@@ -21,14 +21,19 @@ jobs:
 
             cd ~/Tracker
 
-            git pull origin master
+            # 🔥 HARD RESET (no stale code ever again)
+            git fetch origin
+            git reset --hard origin/master
 
             cd apps/backend
 
-            npm install
+            # 🔥 Clean old build
+            rm -rf dist
 
+            npm install
             npm run build
 
+            # 🔥 Restart properly
             pm2 restart backend
 
             echo "Deployment complete!"
