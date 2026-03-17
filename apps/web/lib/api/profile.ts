@@ -7,12 +7,31 @@ export interface Profile {
   onboarding_completed: boolean
 }
 
+// helper to get token
+const getAuthHeader = async () => {
+  const { data } = await supabase.auth.getSession()
+
+  const token = data.session?.access_token
+
+  if (!token) {
+    throw new Error("No auth token")
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
 /**
  * Fetch user profile
  */
-export const getProfile = async (userId: string): Promise<Profile> => {
+export const getProfile = async (): Promise<Profile> => {
 
-  const res = await fetch(`${API_BASE_URL}/profile/${userId}`)
+  const headers = await getAuthHeader()
+
+  const res = await fetch(`${API_BASE_URL}/profile`, {
+    headers,
+  })
 
   if (!res.ok) {
     throw new Error("Failed to fetch profile")
@@ -24,16 +43,16 @@ export const getProfile = async (userId: string): Promise<Profile> => {
 /**
  * Complete onboarding
  */
-export const completeOnboarding = async (userId: string) => {
+export const completeOnboarding = async () => {
+
+  const headers = await getAuthHeader()
 
   const res = await fetch(`${API_BASE_URL}/profile/onboarding`, {
     method: "PATCH",
     headers: {
-      "Content-Type": "application/json"
+      ...headers,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      user_id: userId
-    })
   })
 
   if (!res.ok) {
