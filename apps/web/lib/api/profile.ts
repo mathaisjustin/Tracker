@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabaseClient"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
+console.log("API BASE URL:", API_BASE_URL)
+
 export interface Profile {
   id: string
   onboarding_completed: boolean
