@@ -72,6 +72,7 @@ export default function HabitDetailsPage() {
         ? habit.todayValue >= habit.goal
         : false,
     streak: habit.streak,
+    completions: habit.recentEntries.filter((entry) => entry.status === "complete").length,
     unit: habit.unit, 
     type: habit.type,
   }

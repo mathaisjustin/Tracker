@@ -1,13 +1,22 @@
 "use client"
 
+import type { HabitDetails } from "@/lib/types/habitDetails"
+
 // import { useState, useEffect } from "react"
 // import { getHabitDetails } from "@/lib/api/habits"
 // import { logHabitEntry } from "@/lib/api/entries"
 // import type { HabitDetails } from "@/lib/types/habitDetails"
 // import { useAuth } from "@/lib/AuthProvider"
 
+type UseHabitDetailsResult = {
+  habit: HabitDetails | null
+  isLoading: boolean
+  increment: () => Promise<void>
+  decrement: () => Promise<void>
+}
+
 // TODO: Implement once backend handler is ready
-export function useHabitDetails(habitId: string) {
+export function useHabitDetails(_habitId: string): UseHabitDetailsResult {
   // const { session, loading } = useAuth()
 
   // const [habit, setHabit] = useState<HabitDetails | null>(null)
@@ -113,7 +122,11 @@ export function useHabitDetails(habitId: string) {
   return {
     habit: null,
     isLoading: false,
-    increment: async () => {},
-    decrement: async () => {},
+    increment: async () => {
+      return
+    },
+    decrement: async () => {
+      return
+    },
   }
 }
