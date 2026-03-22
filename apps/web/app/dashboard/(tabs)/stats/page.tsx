@@ -119,13 +119,7 @@ export default function StatsPage() {
 
       ) : (
 
-        <StatsView
-          habit={{
-            streak: 12,
-            completions: 86
-          }}
-        />
-
+        <StatsView habitId={selectedHabit} />
       )}
 
     </div>
