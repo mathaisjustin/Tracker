@@ -4,70 +4,6 @@ import type { HabitEntry } from "@/lib/types/habits"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
-/** Backend habit shape from GET /habits/:user_id */
-export interface BackendHabit {
-  id: string
-  user_id: string
-  name: string
-  color: string
-  type: string
-  unit: string
-  base_cost: number
-  daily_limit?: number | null
-  created_at: string
-  archived_at: string | null
-  selected_day_quantity?: number
-  target_quantity?: number
-  selected_day_completed?: boolean
-}
-
-function parseTargetValue(target: string): number {
-  const normalized = target.trim().toLowerCase()
-
-  if (normalized === "10k") return 10000
-
-  const kMatch = normalized.match(/^(\d+(?:\.\d+)?)k$/)
-  if (kMatch) return Math.max(1, Math.round(Number(kMatch[1]) * 1000))
-
-  const mMatch = normalized.match(/^(\d+(?:\.\d+)?)m$/)
-  if (mMatch) return Math.max(1, Math.round(Number(mMatch[1])))
-
-  const numeric = Number(normalized)
-  if (!Number.isNaN(numeric) && Number.isFinite(numeric) && numeric > 0) {
-    return Math.round(numeric)
-  }
-
-  return 1
-}
-
-function mapBackendToHabit(backend: BackendHabit): Habit {
-  const iconMap: Record<string, string> = {
-    steps: "walk",
-    water: "water",
-    glasses: "water",
-    minutes: "read",
-    sessions: "meditate",
-  }
-  const icon = iconMap[backend.type?.toLowerCase()] ?? iconMap[backend.unit?.toLowerCase()] ?? "read"
-  const target = backend.unit === "steps" ? "10k" : (backend.daily_limit ? String(backend.daily_limit) : backend.unit || "1")
-  const targetUnit = backend.unit === "steps" ? "steps" : backend.unit === "glasses" ? "glasses" : backend.unit || "minutes"
-  const current = Math.max(0, Number(backend.selected_day_quantity ?? 0))
-  const fallbackCompleted = current >= parseTargetValue(target)
-
-  return {
-    id: backend.id,
-    name: backend.name,
-    icon,
-    target,
-    targetUnit,
-    current,
-    completed: backend.selected_day_completed ?? fallbackCompleted,
-    streak: 0,
-    streakType: "streak",
-    color: backend.color,
-  }
-}
-
 /**
  * Fetch habits for a user and date.
  * GET /habits/:user_id?date=YYYY-MM-DD
@@ -76,8 +12,7 @@ export async function getHabits(userId: string, date: string): Promise<Habit[]> 
   if (!API_BASE_URL) return []
   const res = await fetch(`${API_BASE_URL}/habits/${userId}?date=${encodeURIComponent(date)}`)
   if (!res.ok) throw new Error("Failed to fetch habits")
-  const data: BackendHabit[] = await res.json()
-  return data.map(mapBackendToHabit)
+  return res.json()
 }
 
 /**
@@ -157,7 +92,7 @@ export async function createHabit(
     daily_limit?: number
     created_at?: string
   }
-): Promise<BackendHabit> {
+): Promise<Habit> {
   if (!API_BASE_URL) throw new Error("API URL not configured")
   const res = await fetch(`${API_BASE_URL}/habits`, {
     method: "POST",

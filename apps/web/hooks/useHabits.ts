@@ -77,36 +77,6 @@ export function useHabits(initialDate?: Date) {
     }
   }, [user?.id, dateStr, weekStartStr, weekEndStr])
 
-  const updateSelectedDateStatusFromHabits = (nextHabits: Habit[]) => {
-    const selectedDateStr = format(selectedDate, "yyyy-MM-dd")
-    const totalHabits = nextHabits.length
-    const trackedHabits = nextHabits.filter((h) => h.current > 0).length
-
-    const completionRate = totalHabits > 0
-      ? nextHabits.reduce((sum, h) => {
-          const targetNum =
-            h.target === "10k" ? 10000
-            : h.target === "30m" ? 30
-            : parseInt(h.target, 10) || 1
-          return sum + Math.min(1, h.current / targetNum)
-        }, 0) / totalHabits
-      : 0
-
-    setDateStatuses((prev) => {
-      const idx = prev.findIndex((d) => d.date === selectedDateStr)
-      if (idx === -1) return prev
-
-      const next = [...prev]
-      next[idx] = {
-        ...next[idx],
-        hasActivity: trackedHabits > 0,
-        trackedHabits,
-        totalHabits,
-        completionRate,
-      }
-      return next
-    })
-  }
 
   const logProgress = async (habitId: string) => {
     if (!user?.id) return
@@ -119,29 +89,25 @@ export function useHabits(initialDate?: Date) {
     const snapshot = habits
     const nextHabits = habits.map((h) => {
       if (h.id !== habitId) return h
-      const next = h.current + 1
-      const targetNum =
-        h.target === "10k"
-          ? 10000
-          : h.target === "30m"
-            ? 30
-            : parseInt(h.target, 10) || 1
-      const completed = next >= targetNum
       return {
         ...h,
-        current: Math.min(next, targetNum),
-        completed,
+        current: h.current + 1,
       }
     })
 
     setHabits(nextHabits)
-    updateSelectedDateStatusFromHabits(nextHabits)
 
     try {
       await logProgressRequest(user.id, habitId, 1, dateStr)
+      // Refresh to get accurate statuses from backend
+      const [habitsData, statusesData] = await Promise.all([
+        getHabits(user.id, dateStr),
+        getDateStatuses(user.id, weekStartStr, weekEndStr),
+      ])
+      setHabits(habitsData)
+      setDateStatuses(statusesData)
     } catch (_err) {
       setHabits(snapshot)
-      updateSelectedDateStatusFromHabits(snapshot)
       throw _err
     }
   }
