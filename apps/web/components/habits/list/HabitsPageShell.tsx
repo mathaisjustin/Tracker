@@ -13,9 +13,10 @@ interface HabitsPageShellProps {
   dateStatuses: DateStatus[]
   selectedDate: Date
   onSelectDate: (date: Date) => void
-  onLogProgress?: (habitId: string) => void
+  onLogProgress?: (habitId: string, cost?: number) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onEditHabit?: (habitId: string) => void
   onOpenHabit?: (habitId: string) => void
   isLoading?: boolean
 }
@@ -28,6 +29,7 @@ export function HabitsPageShell({
   onLogProgress,
   onComplete,
   onArchive,
+  onEditHabit,
   onOpenHabit,
   isLoading = false,
 }: HabitsPageShellProps) {
@@ -55,6 +57,7 @@ export function HabitsPageShell({
           onLogProgress={onLogProgress}
           onComplete={onComplete}
           onArchive={onArchive}
+          onEditHabit={onEditHabit}
           onOpenHabit={onOpenHabit}
         />
       )}

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { z } from "zod"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -17,10 +16,10 @@ import {
   FieldDescription,
 } from "@/components/ui/field"
 import { useAuth } from "@/lib/AuthProvider"
-import { createHabit } from "@/lib/api/habits"
+import { getHabits, updateHabit } from "@/lib/api/habits"
 import { cn } from "@/lib/utils"
 
-const createHabitSchema = z.object({
+const updateHabitSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["good", "bad"]),
   unit: z.string().min(1, "Unit is required"),
@@ -35,7 +34,7 @@ const createHabitSchema = z.object({
   color: z.string().min(1, "Color is required"),
 })
 
-type CreateHabitFormData = z.infer<typeof createHabitSchema>
+type UpdateHabitFormData = z.infer<typeof updateHabitSchema>
 
 const PRESET_COLORS = [
   "#ef4444",
@@ -52,13 +51,22 @@ function getRandomColor(): string {
   return PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]
 }
 
-export function CreateHabitForm() {
+export function UpdateHabitForm() {
   const { session } = useAuth()
   const router = useRouter()
+  const params = useParams()
   const searchParams = useSearchParams()
+
+  const habitId = params.id as string
+
+  const selectedDateParam = searchParams.get("date")
+  const selectedDate = selectedDateParam ? parseISO(selectedDateParam) : null
+  const hasValidSelectedDate = selectedDate ? isValid(selectedDate) : false
+
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formState, setFormState] = useState<Partial<CreateHabitFormData>>({
+  const [isPrefilling, setIsPrefilling] = useState(true)
+  const [formState, setFormState] = useState<Partial<UpdateHabitFormData>>({
     name: "",
     type: "good",
     unit: "",
@@ -68,23 +76,64 @@ export function CreateHabitForm() {
   })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  const selectedDateParam = searchParams.get("date")
-  const selectedDate = selectedDateParam
-    ? parseISO(selectedDateParam)
-    : null
-  const hasValidSelectedDate = selectedDate ? isValid(selectedDate) : false
-  const createdAtForSelectedDate = hasValidSelectedDate
-    ? `${selectedDateParam}T00:00:00.000Z`
-    : undefined
+  useEffect(() => {
+    let cancelled = false
+
+    async function prefillHabit() {
+      if (!session?.access_token || !habitId) {
+        if (!cancelled) setIsPrefilling(false)
+        return
+      }
+
+      try {
+        const { habits } = await getHabits(
+          session.access_token,
+          hasValidSelectedDate ? selectedDateParam ?? undefined : undefined
+        )
+
+        const existing = habits.find((h) => h.id === habitId)
+
+        if (!existing) {
+          if (!cancelled) {
+            setError("Could not find this habit to prefill.")
+          }
+          return
+        }
+
+        if (!cancelled) {
+          setFormState((prev) => ({
+            ...prev,
+            name: existing.name,
+            type: existing.type,
+            unit: existing.targetUnit,
+            daily_limit: existing.target ?? undefined,
+            color: existing.color,
+          }))
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load habit")
+        }
+      } finally {
+        if (!cancelled) setIsPrefilling(false)
+      }
+    }
+
+    prefillHabit()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.access_token, habitId, hasValidSelectedDate, selectedDateParam])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setFieldErrors({})
 
-    const result = createHabitSchema.safeParse({
+    const result = updateHabitSchema.safeParse({
       name: formState.name ?? "",
-      type: formState.type ?? "bad",
+      type: formState.type ?? "good",
       unit: formState.unit ?? "",
       base_cost: formState.base_cost ?? "",
       daily_limit: formState.daily_limit ?? "",
@@ -102,31 +151,28 @@ export function CreateHabitForm() {
     }
 
     if (!session?.access_token) {
-      setError("You must be signed in to create a habit.")
+      setError("You must be signed in to update a habit.")
       return
     }
 
     setIsSubmitting(true)
     try {
-      await createHabit(session.access_token, {
+      await updateHabit(session.access_token, habitId, {
         name: result.data.name,
         color: result.data.color,
         type: result.data.type,
         unit: result.data.unit,
-        base_cost: result.data.base_cost,      // ← was missing
+        base_cost: result.data.base_cost,
         daily_limit: result.data.daily_limit,
       })
+
       router.replace(
         hasValidSelectedDate
           ? `/dashboard/habits?date=${selectedDateParam}`
           : "/dashboard/habits"
       )
     } catch (err) {
-      if (err instanceof Error && err.message === "FREE_LIMIT_REACHED") {
-        router.push("/dashboard/upgrade")  // ← redirect to upgrade page
-        return
-      }
-      setError(err instanceof Error ? err.message : "Failed to create habit")
+      setError(err instanceof Error ? err.message : "Failed to update habit")
     } finally {
       setIsSubmitting(false)
     }
@@ -142,7 +188,7 @@ export function CreateHabitForm() {
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-white">Create Habit</h1>
+        <h1 className="text-2xl font-bold text-white">Update Habit</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1 overflow-hidden">
@@ -154,6 +200,10 @@ export function CreateHabitForm() {
             {error}
           </div>
         )}
+
+        {isPrefilling ? (
+          <p className="text-sm text-zinc-400">Loading habit data...</p>
+        ) : null}
 
         <Field>
           <FieldLabel>NAME</FieldLabel>
@@ -209,9 +259,7 @@ export function CreateHabitForm() {
         </Field>
 
         <Field>
-          <FieldLabel>
-            BASE COST
-          </FieldLabel>
+          <FieldLabel>BASE COST</FieldLabel>
           <Input
             type="number"
             min={0}
@@ -230,9 +278,7 @@ export function CreateHabitForm() {
         </Field>
 
         <Field>
-          <FieldLabel>
-            DAILY LIMIT
-          </FieldLabel>
+          <FieldLabel>DAILY LIMIT</FieldLabel>
           <Input
             type="number"
             min={1}
@@ -275,9 +321,9 @@ export function CreateHabitForm() {
         <Button
           type="submit"
           className="w-full py-6 text-base"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isPrefilling}
         >
-          {isSubmitting ? "Creating..." : "Create Habit"}
+          {isSubmitting ? "Updating..." : "Update Habit"}
         </Button>
       </form>
     </div>

@@ -7,19 +7,30 @@ import { getHabitsService, createHabitService, updateHabitService, deleteHabitSe
 export const getHabits = async (req: Request, res: Response) => {
   const userId = req.user.id;
 
-  // Default to today if no date param provided
   const date =
     typeof req.query.date === "string"
       ? req.query.date
       : new Date().toISOString().split("T")[0];
 
-  // Validate date format
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD." });
   }
 
+  // Optional week range for ring statuses
+  const startDate =
+    typeof req.query.start === "string" ? req.query.start : undefined;
+  const endDate =
+    typeof req.query.end === "string" ? req.query.end : undefined;
+
+  if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    return res.status(400).json({ error: "Invalid start date format." });
+  }
+  if (endDate && !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return res.status(400).json({ error: "Invalid end date format." });
+  }
+
   try {
-    const data = await getHabitsService(userId, date);
+    const data = await getHabitsService(userId, date, startDate, endDate);
     return res.json(data);
   } catch (err: any) {
     console.error("[GET /api/habits]", err.message);

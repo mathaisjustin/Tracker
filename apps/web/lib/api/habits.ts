@@ -1,117 +1,72 @@
 import type { Habit } from "@/lib/types/habits"
-import type { HabitDetails } from "@/lib/types/habitDetails"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
-/**
- * Backend Habit Shape (EXACT response from GET /api/habits)
- */
 export interface BackendHabit {
   id: string
   name: string
   color: string
   type: "good" | "bad"
   unit: string | null
-  created_at: string
-  is_archived: boolean
-  daily_limit: number | null
-
-  // computed by backend
-  selected_day_quantity: number
-  target_quantity: number
-  is_completed: boolean
+  target: number | null
+  current: number
+  has_entry: boolean
+  base_cost: number | null
 }
 
-export interface BackendHabitDetails {
-  habit: {
-    id: string
-    name: string
-    color: string
-    unit: string | null
-    goal: number | null
-    type: "good" | "bad"
-  }
-
-  streak: {
-    current: number
-  }
-
-  today: {
-    value: number
-    goal: number | null
-    progress: number
-  }
-
-  recent_entries: {
-    date: string
-    value: number
-    status: "complete" | "partial" | "missed" | "in_progress"
-  }[]
+export interface GetHabitsResponse {
+  habits: BackendHabit[]
+  day_progress: number
 }
 
-/**
- * Map backend habit → frontend habit
- * (UI-friendly shape)
- */
 function mapBackendToHabit(backend: BackendHabit): Habit {
-  console.log("BACKEND:", backend.name, {
-    daily_limit: backend.daily_limit,
-    target_quantity: backend.target_quantity,
-  })
-
-  const mapped: Habit = {
+  return {
     id: backend.id,
     name: backend.name,
+    type: backend.type,
     icon: "read",
-    target: backend.target_quantity ?? null,
+    target: backend.target,
     targetUnit: backend.unit ?? "",
-    current: backend.selected_day_quantity,
-    completed: backend.is_completed,
+    current: backend.current,
+    // completed = hit the goal (or has entry if no goal)
+    completed: backend.target !== null
+      ? backend.current >= backend.target
+      : backend.has_entry,
     streak: 0,
-    streakType: "streak", // ✅ works now because of typing
+    streakType: "streak",
     color: backend.color,
-  }
-
-  console.log("MAPPED:", backend.name, {
-    target: mapped.target,
-  })
-
-  return mapped
-}
-
-function mapBackendToHabitDetails(data: BackendHabitDetails): HabitDetails {
-  return {
-    id: data.habit.id,
-    name: data.habit.name,
-    color: data.habit.color,
-    unit: data.habit.unit ?? "",
-    goal: data.habit.goal,
-    type: data.habit.type,
-
-    streak: data.streak?.current ?? 0,
-
-    todayValue: data.today.value,
-    progress: data.today.progress,
-
-    recentEntries: data.recent_entries
+    baseCost: backend.base_cost,
   }
 }
 
-/**
- * GET HABITS
- *
- * - Uses Supabase JWT (Authorization header)
- * - Backend resolves user automatically
- * - NO userId in URL
- */
-export async function getHabits(token: string): Promise<Habit[]> {
+export interface WeekStatus {
+  date: string
+  day_progress: number
+}
+
+export interface GetHabitsResponse {
+  habits: BackendHabit[]
+  day_progress: number
+  week_statuses: WeekStatus[]
+}
+
+export async function getHabits(
+  token: string,
+  date?: string,
+  weekRange?: { start: string; end: string }
+): Promise<{ habits: Habit[]; dayProgress: number; weekStatuses: WeekStatus[] }> {
   if (!API_BASE_URL) throw new Error("API URL not configured")
 
-  const res = await fetch(`${API_BASE_URL}/habits`, {
+  const params = new URLSearchParams()
+  if (date) params.set("date", date)
+  if (weekRange) {
+    params.set("start", weekRange.start)
+    params.set("end", weekRange.end)
+  }
+
+  const res = await fetch(`${API_BASE_URL}/habits?${params.toString()}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   })
 
   if (!res.ok) {
@@ -123,14 +78,17 @@ export async function getHabits(token: string): Promise<Habit[]> {
     throw new Error(message)
   }
 
-  const data: BackendHabit[] = await res.json()
+  const data: GetHabitsResponse = await res.json()
 
-  return data.map(mapBackendToHabit)
+  return {
+    habits: data.habits.map(mapBackendToHabit),
+    dayProgress: data.day_progress,
+    weekStatuses: data.week_statuses,
+  }
 }
 
 /**
  * CREATE HABIT
- *
  * POST /api/habits
  */
 export async function createHabit(
@@ -140,10 +98,10 @@ export async function createHabit(
     color: string
     type: "good" | "bad"
     unit: string
-    base_cost?: number
+    base_cost?: number      // ← add this
     daily_limit?: number
   }
-) {
+): Promise<BackendHabit> {
   if (!API_BASE_URL) throw new Error("API URL not configured")
 
   const res = await fetch(`${API_BASE_URL}/habits`, {
@@ -158,57 +116,21 @@ export async function createHabit(
   const data = await res.json()
 
   if (!res.ok) {
+    // Throw the error code directly so callers can handle it
     throw new Error(data?.error ?? "Failed to create habit")
   }
 
-  return data.habit
-}
-
-/**
- * GET HABIT DETAILS
- *
- * GET /api/habits/:id/details
- */
-
-export async function getHabitDetails(
-  token: string,
-  habitId: string
-): Promise<HabitDetails> {
-  if (!API_BASE_URL) throw new Error("API URL not configured")
-
-  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/details`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (!res.ok) {
-    let message = "Failed to fetch habit details"
-    try {
-      const data = await res.json()
-      message = data?.error ?? message
-    } catch {}
-    throw new Error(message)
-  }
-
-  const data: BackendHabitDetails = await res.json()
-
-  return mapBackendToHabitDetails(data)
+  return data
 }
 
 /**
  * ARCHIVE HABIT
- *
- * PATCH /api/habits/archive/:id
+ * PATCH /api/habits/:id/archive
  */
-export async function archiveHabit(
-  token: string,
-  habitId: string
-): Promise<void> {
+export async function archiveHabit(token: string, habitId: string): Promise<void> {
   if (!API_BASE_URL) throw new Error("API URL not configured")
 
-  const res = await fetch(`${API_BASE_URL}/habits/archive/${habitId}`, {
+  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/archive`, {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -223,4 +145,40 @@ export async function archiveHabit(
     } catch {}
     throw new Error(message)
   }
+}
+
+/**
+ * UPDATE HABIT
+ * PUT /api/habits/:id
+ */
+export async function updateHabit(
+  token: string,
+  habitId: string,
+  payload: {
+    name?: string
+    color?: string
+    type?: "good" | "bad"
+    unit?: string
+    base_cost?: number
+    daily_limit?: number
+  }
+): Promise<BackendHabit> {
+  if (!API_BASE_URL) throw new Error("API URL not configured")
+
+  const res = await fetch(`${API_BASE_URL}/habits/${habitId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data?.error ?? "Failed to update habit")
+  }
+
+  return data
 }

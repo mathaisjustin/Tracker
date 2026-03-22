@@ -20,10 +20,7 @@ export function useProfile() {
 
       try {
         const data = await getProfile()
-
-        if (!cancelled) {
-          setProfile(data)
-        }
+        if (!cancelled) setProfile(data)
       } catch (err) {
         console.error("Profile fetch failed:", err)
       } finally {
@@ -33,14 +30,17 @@ export function useProfile() {
 
     fetchProfile()
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [session?.access_token])
+
+  const isPro = profile?.is_pro ?? false
+  const activeHabitCount = profile?.active_habit_count ?? 0
+  const canCreate = isPro || activeHabitCount < 2  // ← computed here
 
   return {
     profile,
-    isPro: profile?.is_pro ?? false,
+    isPro,
+    canCreate,  // ← exposed
     isLoading,
   }
 }

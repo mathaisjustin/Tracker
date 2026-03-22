@@ -6,6 +6,7 @@ export interface Profile {
   id: string
   onboarding_completed: boolean
   is_pro: boolean
+  active_habit_count: number
 }
 
 // helper to get token

@@ -2,27 +2,42 @@
 // Business logic for habit operations
 import { supabase } from "../../db/supabase";
 
-export const getHabitsService = async (userId: string, date: string) => {
+export interface WeekStatus {
+  date: string;
+  day_progress: number;
+}
+
+export interface GetHabitsResult {
+  habits: {
+    id: string;
+    name: string;
+    color: string;
+    type: "good" | "bad";
+    unit: string | null;
+    target: number | null;
+    current: number;
+    has_entry: boolean;
+  }[];
+  day_progress: number;
+  week_statuses: WeekStatus[];
+}
+
+export const getHabitsService = async (
+  userId: string,
+  date: string,
+  startDate?: string,
+  endDate?: string
+): Promise<GetHabitsResult> => {
   const { data, error } = await supabase.rpc("get_habits_for_date", {
     p_user_id: userId,
     p_date: date,
+    p_start_date: startDate ?? null,
+    p_end_date: endDate ?? null,
   });
 
   if (error) throw new Error(error.message);
 
-  return data as {
-    habits: {
-      id: string;
-      name: string;
-      color: string;
-      type: "good" | "bad";
-      unit: string | null;
-      target: number | null;
-      current: number;
-      has_entry: boolean;
-    }[];
-    day_progress: number;
-  };
+  return data as GetHabitsResult;
 };
 
 export const createHabitService = async (

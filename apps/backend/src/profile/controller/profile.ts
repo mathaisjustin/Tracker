@@ -1,20 +1,30 @@
 import { Request, Response } from "express";
-
+import { getProfileService, completeOnboardingService } from "../service/profile";
 // Profile Controller
 // Handle profile-related HTTP requests
 // Used in: /api/profile
 
 export const getProfile = async (req: Request, res: Response) => {
-  // TODO: Implement get profile logic
-  res.json({ message: "Get profile" });
+  const userId = req.user.id;
+  const email = req.user.email;
+
+  try {
+    const profile = await getProfileService(userId, email);
+    return res.json(profile);
+  } catch (err: any) {
+    console.error("[GET /api/profile]", err.message);
+    return res.status(500).json({ error: "Failed to fetch profile" });
+  }
 };
 
-export const updateProfile = async (req: Request, res: Response) => {
-  // TODO: Implement update profile logic
-  res.json({ message: "Update profile" });
-};
+export const completeOnboarding = async (req: Request, res: Response) => {
+  const userId = req.user.id;
 
-export const deleteProfile = async (req: Request, res: Response) => {
-  // TODO: Implement delete profile logic
-  res.json({ message: "Delete profile" });
+  try {
+    const profile = await completeOnboardingService(userId);
+    return res.json(profile);
+  } catch (err: any) {
+    console.error("[PATCH /api/profile/onboarding]", err.message);
+    return res.status(500).json({ error: "Failed to complete onboarding" });
+  }
 };

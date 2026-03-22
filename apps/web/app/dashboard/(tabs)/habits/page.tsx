@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { HabitsPageShell } from "@/components/habits"
 import { useHabits } from "@/hooks/useHabits"
+import { useEntries } from "@/hooks/useEntries"
 
 export default function HabitsPage() {
   const router = useRouter()
@@ -20,22 +21,20 @@ export default function HabitsPage() {
 
   const [selectedDate, setSelectedDate] = useState(initialDate)
 
-  // ✅ IMPORTANT: include logProgress
-  const { habits, isLoading, archiveHabit, logProgress } = useHabits()
+  const { habits, setHabits, dateStatuses, isLoading, error, archiveHabit } =
+    useHabits(selectedDate)
+
+  const { logProgress } = useEntries({ habits, setHabits })
+
+  const selectedDateParam = format(selectedDate, "yyyy-MM-dd")
 
   useEffect(() => {
-    const nextDate = format(selectedDate, "yyyy-MM-dd")
     const currentDate = searchParams.get("date")
-
-    if (currentDate === nextDate) return
-
+    if (currentDate === selectedDateParam) return
     const next = new URLSearchParams(searchParams.toString())
-    next.set("date", nextDate)
-
+    next.set("date", selectedDateParam)
     router.replace(`/dashboard/habits?${next.toString()}`)
-  }, [selectedDate, searchParams, router])
-
-  const dateStatuses: any[] = []
+  }, [selectedDate, searchParams, router, selectedDateParam])
 
   return (
     <HabitsPageShell
@@ -43,17 +42,15 @@ export default function HabitsPage() {
       dateStatuses={dateStatuses}
       selectedDate={selectedDate}
       onSelectDate={setSelectedDate}
-
-      // ✅ CONNECTED
       onLogProgress={logProgress}
-
       onComplete={undefined}
       onArchive={archiveHabit}
-
+      onEditHabit={(habitId) =>
+        router.push(`/dashboard/habits/${habitId}?date=${selectedDateParam}`)
+      }
       onOpenHabit={(habitId) =>
         router.push(`/dashboard/habits/${habitId}`)
       }
-
       isLoading={isLoading}
     />
   )

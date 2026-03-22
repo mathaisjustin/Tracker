@@ -8,9 +8,10 @@ interface HabitListProps {
   habits: Habit[]
   filter: FilterTab
   selectedDate: Date
-  onLogProgress?: (habitId: string) => void
+  onLogProgress?: (habitId: string, cost?: number) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onEditHabit?: (habitId: string) => void
   onOpenHabit?: (habitId: string) => void
 }
 
@@ -28,6 +29,7 @@ export function HabitList({
   onLogProgress,
   onComplete,
   onArchive,
+  onEditHabit,
   onOpenHabit,
 }: HabitListProps) {
   const filtered = filterHabits(habits, filter)
@@ -42,6 +44,7 @@ export function HabitList({
           onPlus={onLogProgress}
           onComplete={onComplete}
           onArchive={onArchive}
+          onEdit={onEditHabit}
           onOpen={onOpenHabit}
         />
       ))}

@@ -1,16 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { format, startOfWeek, addDays } from "date-fns"
 import { getHabits, archiveHabit as archiveHabitApi } from "@/lib/api/habits"
-import { addEntry } from "@/lib/api/entries"
-import type { Habit } from "@/lib/types/habits"
+import type { Habit, DateStatus } from "@/lib/types/habits"
 import { useAuth } from "@/lib/AuthProvider"
 
-export function useHabits() {
+export function useHabits(date?: Date) {
   const { session } = useAuth()
 
   const [habits, setHabits] = useState<Habit[]>([])
+  const [dayProgress, setDayProgress] = useState<number>(0)
+  const [dateStatuses, setDateStatuses] = useState<DateStatus[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const dateString = date ? format(date, "yyyy-MM-dd") : undefined
+  const weekStart = date
+    ? format(startOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd")
+    : undefined
 
   useEffect(() => {
     let cancelled = false
@@ -19,16 +27,40 @@ export function useHabits() {
       if (!session?.access_token) return
 
       setIsLoading(true)
+      setError(null)
 
       try {
-        const data = await getHabits(session.access_token)
+        const weekRange = weekStart
+          ? {
+              start: weekStart,
+              end: format(addDays(new Date(weekStart), 6), "yyyy-MM-dd"),
+            }
+          : undefined
+
+        const { habits: fetched, dayProgress: progress, weekStatuses } =
+          await getHabits(session.access_token, dateString, weekRange)
 
         if (!cancelled) {
-          setHabits(data)
+          setHabits(fetched)
+          setDayProgress(progress)
+          setDateStatuses(
+            weekStatuses.map((s) => ({
+              date: s.date,
+              hasActivity: s.day_progress > 0,
+              completionRate: s.day_progress / 100,
+              trackedHabits: 0,
+              totalHabits: 0,
+            }))
+          )
         }
       } catch (err) {
         console.error("Failed to fetch habits:", err)
-        if (!cancelled) setHabits([])
+        if (!cancelled) {
+          setHabits([])
+          setDayProgress(0)
+          setDateStatuses([])
+          setError(err instanceof Error ? err.message : "Unknown error")
+        }
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -36,80 +68,45 @@ export function useHabits() {
 
     fetchData()
 
-    return () => {
-      cancelled = true
-    }
-  }, [session?.access_token])
+    return () => { cancelled = true }
+  }, [session?.access_token, dateString, weekStart])
 
-  /**
-   * Archive habit (optimistic update)
-   */
   const archiveHabit = async (habitId: string) => {
     if (!session?.access_token) return
 
     const previous = habits
 
-    // ✅ optimistic UI update
+    // Optimistic update — remove from list immediately
     setHabits((prev) => prev.filter((h) => h.id !== habitId))
 
     try {
       await archiveHabitApi(session.access_token, habitId)
     } catch (err) {
       console.error("Archive failed:", err)
-
-      // ❌ rollback if failed
+      // Rollback on failure
       setHabits(previous)
     }
   }
 
-  const logProgress = async (habitId: string) => {
-    if (!session?.access_token) return
+  const liveDateStatuses = useMemo(() => {
+  if (!dateString) return dateStatuses
 
-    // 🔥 optimistic update
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id !== habitId) return h
+  const goalHabits = habits.filter(
+    (h) => h.target !== null && h.target !== undefined
+  )
 
-        const next = h.current + 1
-        const hasGoal = h.target !== null && h.target !== undefined
+  if (goalHabits.length === 0) return dateStatuses
 
-        return {
-          ...h,
-          current: next,
-          completed: hasGoal ? next >= Number(h.target) : false,
-        }
-      })
-    )
+  const completionRate =
+    goalHabits.reduce((sum, h) => sum + Math.min(h.current / Number(h.target), 1), 0) /
+    goalHabits.length
 
-    try {
-      await addEntry(habitId)
-    } catch (err: any) {
-      console.error("Entry failed:", err)
+  return dateStatuses.map((s) =>
+    s.date === dateString
+      ? { ...s, hasActivity: habits.some((h) => h.completed), completionRate }
+      : s
+  )
+}, [habits, dateStatuses, dateString])
 
-      // ❌ rollback
-      setHabits((prev) =>
-        prev.map((h) => {
-          if (h.id !== habitId) return h
-
-          const prevVal = h.current - 1
-          const hasGoal = h.target !== null && h.target !== undefined
-
-          return {
-            ...h,
-            current: prevVal,
-            completed: hasGoal ? prevVal >= Number(h.target) : false,
-          }
-        })
-      )
-
-      // optional: show toast later
-    }
-  }
-
-  return {
-    habits,
-    isLoading,
-    archiveHabit, // ✅ expose
-    logProgress, // ✅ expose
-  }
+return { habits, setHabits, dayProgress, dateStatuses: liveDateStatuses, isLoading, error, archiveHabit }
 }

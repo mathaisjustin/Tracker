@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { getProfile, updateProfile, deleteProfile } from "../controller/profile";
+import { authMiddleware } from "../../middleware/auth";
+import { getProfile, completeOnboarding } from "../controller/profile";
 
 const router = Router();
 
 // authMiddleware: Add when you implement authentication
-// router.use(authMiddleware);
+router.use(authMiddleware);
 
 /**
  * GET /api/profile
@@ -13,16 +14,10 @@ const router = Router();
 router.get("/", getProfile);
 
 /**
- * PUT /api/profile
- * Update the logged-in user's profile
- * Body: { email, name, preferences, theme, etc }
+ * PATCH /api/profile/onboarding
+ * Complete the onboarding process for the logged-in user
  */
-router.put("/", updateProfile);
+router.patch("/onboarding", completeOnboarding);
 
-/**
- * DELETE /api/profile
- * Delete the logged-in user's profile and all data
- */
-router.delete("/", deleteProfile);
 
 export default router;

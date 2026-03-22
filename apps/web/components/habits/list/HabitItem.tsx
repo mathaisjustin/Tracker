@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent } from "react"
-import { Archive, Check, Plus, TrendingDown, TrendingUp } from "lucide-react"
+import { Archive, Check, Pencil, Plus, TrendingDown, TrendingUp } from "lucide-react"
 import { isAfter, startOfDay } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -7,49 +7,69 @@ import { cn } from "@/lib/utils"
 import type { Habit } from "@/lib/types/habits"
 
 import { HabitIcon } from "../shared/HabitIcon"
+import { CostInputSheet } from "./CostInputSheet"
 
 interface HabitItemProps {
   habit: Habit
   selectedDate: Date
-  onPlus?: (habitId: string) => void
+  onPlus?: (habitId: string, cost?: number) => void
   onComplete?: (habitId: string) => void
   onArchive?: (habitId: string) => void
+  onEdit?: (habitId: string) => void
   onOpen?: (habitId: string) => void
 }
 
 function formatProgress(habit: Habit): string {
-  if (habit.completed) return "Done"
-
   const hasGoal = habit.target !== null && habit.target !== undefined
 
-  // 🚫 NO GOAL
   if (!hasGoal) {
-    return `${habit.current}`
-    // or `${habit.current} done` (your choice)
+    return habit.completed ? "Done" : `${habit.current}`
   }
 
-  // ✅ HAS GOAL
+  if (habit.completed) return "Done"
+
   if (habit.targetUnit === "steps") {
     const currentFormatted =
       habit.current >= 1000 ? `${habit.current / 1000}k` : habit.current
-
     return `${currentFormatted} / ${habit.target}`
   }
 
   return `${habit.current} / ${habit.target}`
 }
 
-export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, onOpen }: HabitItemProps) {
+export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, onEdit, onOpen }: HabitItemProps) {
   const StreakIcon = habit.streakType === "streak" ? TrendingUp : TrendingDown
   const streakColor = habit.streakType === "streak" ? "text-green-500" : "text-red-500"
   const streakLabel = habit.streakType === "streak"
     ? `${habit.streak} day streak`
     : `${habit.streak} day miss`
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasCost = habit.baseCost !== null && habit.baseCost !== undefined && habit.baseCost > 0
+
+  const handlePlusPointerDown = () => {
+    if (!hasCost) return
+    longPressTimer.current = setTimeout(() => {
+      setSheetOpen(true)
+    }, 500)
+  }
+
+  const handlePlusPointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  const handlePlusClick = () => {
+    if (!sheetOpen) onPlus?.(habit.id)
+  }
 
   const isFutureDate = isAfter(startOfDay(selectedDate), startOfDay(new Date()))
   const isTodayDate = !isFutureDate && startOfDay(selectedDate).getTime() === startOfDay(new Date()).getTime()
   const canLogProgress = isTodayDate
   const canArchive = isTodayDate
+  const canEdit = true
 
   const startXRef = useRef<number | null>(null)
   const startOffsetRef = useRef(0)
@@ -57,12 +77,21 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
   const [isDragging, setIsDragging] = useState(false)
   const [offset, setOffset] = useState(0)
   const actionSlotSize = 44
+  const leftActionButtonSize = 40
+  const leftActionGap = 8
+  const leftActionRailPadding = 4
   const rightActionSize = canLogProgress ? actionSlotSize : 0
-  const maxReveal = canArchive ? actionSlotSize : 0
-  const revealThreshold = 22
+  const leftActionCount = (canEdit ? 1 : 0) + (canArchive ? 1 : 0)
+  const maxReveal = leftActionCount > 0
+    ? leftActionCount * leftActionButtonSize +
+      Math.max(0, leftActionCount - 1) * leftActionGap +
+      leftActionRailPadding * 2
+    : 0
+  const canSwipeActions = leftActionCount > 0
+  const revealThreshold = Math.max(18, maxReveal * 0.35)
   const leftSlotWidth = offset
   const rightSlotWidth = Math.max(0, rightActionSize - offset)
-  const interactionReady = leftSlotWidth >= actionSlotSize * 0.55
+  const interactionReady = leftSlotWidth >= maxReveal - 2
   const rightActionReady = rightSlotWidth >= actionSlotSize * 0.55
 
   const resetPosition = () => {
@@ -70,7 +99,7 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
   }
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!canArchive) return
+    if (!canSwipeActions) return
     startXRef.current = event.clientX
     startOffsetRef.current = offset
     draggingRef.current = true
@@ -102,6 +131,36 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
     onArchive?.(habit.id)
   }
 
+  const handleEdit = () => {
+    resetPosition()
+    onEdit?.(habit.id)
+  }
+
+  const leftActions = [
+    ...(canEdit
+      ? [
+          {
+            key: "edit",
+            label: "Edit habit",
+            onClick: handleEdit,
+            className: "bg-blue-500 hover:bg-blue-400",
+            Icon: Pencil,
+          },
+        ]
+      : []),
+    ...(canArchive
+      ? [
+          {
+            key: "archive",
+            label: "Archive habit",
+            onClick: handleArchive,
+            className: "bg-orange-500 hover:bg-orange-400",
+            Icon: Archive,
+          },
+        ]
+      : []),
+  ]
+
   return (
     <div className="relative w-full overflow-hidden">
       <div
@@ -118,23 +177,39 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
         role="group"
         aria-label={habit.name}
       >
-        <div className="overflow-hidden">
-          {canArchive ? (
-            <button
-              type="button"
-              className="inline-flex size-10 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm transition active:scale-[0.98] hover:bg-orange-400"
-              style={{
-                transform: `translateX(${leftSlotWidth - actionSlotSize}px)`,
-                transition: isDragging ? "none" : "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-              onClick={handleArchive}
-              onPointerDown={(event) => event.stopPropagation()}
-              disabled={!interactionReady}
-              aria-label="Archive habit"
-            >
-              <Archive className="size-4" />
-            </button>
-          ) : null}
+        <div className="relative h-full overflow-hidden">
+          <div
+            className="absolute left-0 top-1/2 flex items-center"
+            style={{
+              width: `${maxReveal}px`,
+              paddingLeft: `${leftActionRailPadding}px`,
+              paddingRight: `${leftActionRailPadding}px`,
+              columnGap: `${leftActionGap}px`,
+              transform: `translateX(${leftSlotWidth - maxReveal}px) translateY(-50%)`,
+              transition: isDragging ? "none" : "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
+            {leftActions.map((action) => {
+              const Icon = action.Icon
+
+              return (
+                <button
+                  key={action.key}
+                  type="button"
+                  className={cn(
+                    "inline-flex size-10 items-center justify-center rounded-full text-white shadow-sm transition active:scale-[0.98]",
+                    action.className
+                  )}
+                  onClick={action.onClick}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  disabled={!interactionReady}
+                  aria-label={action.label}
+                >
+                  <Icon className="size-4" />
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div
@@ -183,20 +258,33 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
                 <Check className="size-5" />
               </Button>
             ) : (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="size-9 rounded-full bg-zinc-800 text-zinc-400 transition-transform duration-200 hover:bg-zinc-700 hover:text-white"
-                style={{
-                  transform: `translateX(${actionSlotSize - rightSlotWidth}px)`,
-                }}
-                aria-label="Log progress"
-                onClick={() => onPlus?.(habit.id)}
-                onPointerDown={(event) => event.stopPropagation()}
-                disabled={!rightActionReady}
-              >
-                <Plus className="size-5" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="size-9 rounded-full bg-zinc-800 text-zinc-400 transition-transform duration-200 hover:bg-zinc-700 hover:text-white"
+                  style={{ transform: `translateX(${actionSlotSize - rightSlotWidth}px)` }}
+                  aria-label="Log progress"
+                  onClick={handlePlusClick}
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    handlePlusPointerDown()
+                  }}
+                  onPointerUp={handlePlusPointerUp}
+                  onPointerLeave={handlePlusPointerUp}
+                  disabled={!rightActionReady}
+                >
+                  <Plus className="size-5" />
+                </Button>
+
+                <CostInputSheet
+                  isOpen={sheetOpen}
+                  defaultCost={habit.baseCost ?? 0}
+                  unit={habit.targetUnit || "unit"}
+                  onConfirm={(cost) => onPlus?.(habit.id, cost)}
+                  onClose={() => setSheetOpen(false)}
+                />
+              </>
             )
           ) : null}
         </div>

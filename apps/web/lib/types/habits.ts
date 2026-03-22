@@ -3,14 +3,16 @@ export type FilterTab = "all" | "active" | "done"
 export interface Habit {
   id: string
   name: string
-  icon: string // e.g. "walk" | "water" | "read" | "meditate"
-  target: number | null // e.g. "10k", "8", "30m"
-  targetUnit: string // e.g. "steps", "glasses", "minutes"
+  type: "good" | "bad"
+  icon: string
+  target: number | null
+  targetUnit: string
   current: number
   completed: boolean
-  streak: number // positive = streak, negative = miss
+  streak: number
   streakType: "streak" | "miss"
-  color: string // hex color from backend
+  color: string
+  baseCost: number | null
 }
 
 export interface DateStatus {

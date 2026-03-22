@@ -1,4 +1,5 @@
 export { CreateHabitForm } from "./create/CreateHabitForm"
+export { UpdateHabitForm } from "./update/UpdateHabitForm"
 export { DateSelector } from "./list/DateSelector"
 export { FilterTabs } from "./list/FilterTabs"
 export { HabitCompletionSummary } from "./list/HabitCompletionSummary"

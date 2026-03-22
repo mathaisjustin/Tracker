@@ -1,0 +1,61 @@
+﻿# Frontend Folder Tree
+
+```text
+apps/web
+|-- app
+|   |-- (auth)
+|   |   |-- auth
+|   |   |   \-- callback
+|   |   |-- forgot-password
+|   |   |-- login
+|   |   |-- reset-password
+|   |   \-- signup
+|   |-- dashboard
+|   |   |-- (tabs)
+|   |   |   |-- habits
+|   |   |   |   |-- [id]
+|   |   |   |   \-- create
+|   |   |   |-- settings
+|   |   |   |   |-- appearance
+|   |   |   |   |-- archived
+|   |   |   |   |-- password
+|   |   |   |   |-- profile
+|   |   |   |   |-- streaks-reset
+|   |   |   |   |-- theme
+|   |   |   |   |-- timezone
+|   |   |   |   \-- unit
+|   |   |   \-- stats
+|   |   \-- upgrade
+|   \-- onboarding
+|-- components
+|   |-- auth
+|   |-- dashboard
+|   |-- habits
+|   |   |-- create
+|   |   |-- details
+|   |   |   |-- logs
+|   |   |   |   \-- components
+|   |   |   \-- stats
+|   |   |       \-- components
+|   |   |-- list
+|   |   \-- shared
+|   |-- settings
+|   |   |-- appearance
+|   |   |-- archived
+|   |   |-- password
+|   |   |-- profile
+|   |   |-- streaks
+|   |   |-- theme
+|   |   |-- timezone
+|   |   \-- unit
+|   |-- stats
+|   \-- ui
+|-- hooks
+|-- lib
+|   |-- api
+|   \-- types
+\-- public
+	|-- forgot-pass
+	|-- login
+	\-- signup
+```
