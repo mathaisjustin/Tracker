@@ -81,16 +81,31 @@ export const getHabits = async (req: any, res: any) => {
   }
 
   const payload = (habits ?? []).map((habit: any) => {
-    const selected_day_quantity = quantityByHabit.get(habit.id) ?? 0
-    const target_quantity = habit.daily_limit != null
+    const current = quantityByHabit.get(habit.id) ?? 0
+    const targetValue = habit.daily_limit != null
       ? Math.max(1, Number(habit.daily_limit))
       : parseTargetQuantity(habit.unit)
 
+    const iconMap: Record<string, string> = {
+      steps: "walk",
+      water: "water",
+      glasses: "water",
+      minutes: "read",
+      sessions: "meditate",
+    }
+    const icon = iconMap[habit.type?.toLowerCase()] ?? iconMap[habit.unit?.toLowerCase()] ?? "read"
+
+    const target = habit.unit === "steps" ? "10k" : (habit.daily_limit ? String(habit.daily_limit) : habit.unit || "1")
+
     return {
       ...habit,
-      selected_day_quantity,
-      target_quantity,
-      selected_day_completed: selected_day_quantity >= target_quantity,
+      current,
+      target,
+      targetUnit: habit.unit === "steps" ? "steps" : habit.unit === "glasses" ? "glasses" : habit.unit || "minutes",
+      completed: current >= targetValue,
+      icon,
+      streak: 0,
+      streakType: "streak",
     }
   })
 
