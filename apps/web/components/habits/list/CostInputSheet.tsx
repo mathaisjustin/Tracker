@@ -29,6 +29,31 @@ export function CostInputSheet({
     }
   }, [isOpen, defaultCost])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    window.dispatchEvent(
+      new CustomEvent("tracker:cost-sheet-visibility", {
+        detail: { open: isOpen },
+      })
+    )
+
+    if (isOpen) {
+      document.body.setAttribute("data-cost-sheet-open", "true")
+    } else {
+      document.body.removeAttribute("data-cost-sheet-open")
+    }
+
+    return () => {
+      document.body.removeAttribute("data-cost-sheet-open")
+      window.dispatchEvent(
+        new CustomEvent("tracker:cost-sheet-visibility", {
+          detail: { open: false },
+        })
+      )
+    }
+  }, [isOpen])
+
   const handleConfirm = () => {
     onConfirm(Number(cost) || 0)
     onClose()
@@ -40,7 +65,7 @@ export function CostInputSheet({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-40 bg-black/60"
+            className="fixed inset-0 z-[90] bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -49,7 +74,7 @@ export function CostInputSheet({
 
           {/* Sheet */}
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-zinc-900 border-t border-zinc-800 px-6 pt-5 pb-10"
+            className="fixed bottom-0 left-0 right-0 z-[100] rounded-t-2xl bg-zinc-900 border-t border-zinc-800 px-6 pt-5 pb-10"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

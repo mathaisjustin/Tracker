@@ -46,7 +46,7 @@ export default function HabitsPage() {
       onComplete={undefined}
       onArchive={archiveHabit}
       onEditHabit={(habitId) =>
-        router.push(`/dashboard/habits/${habitId}?date=${selectedDateParam}`)
+        router.push(`/dashboard/habits/${habitId}/update?date=${selectedDateParam}`)
       }
       onOpenHabit={(habitId) =>
         router.push(`/dashboard/habits/${habitId}`)

@@ -52,7 +52,7 @@ function getRandomColor(): string {
 }
 
 export function UpdateHabitForm() {
-  const { session } = useAuth()
+  const { session, loading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
@@ -65,7 +65,7 @@ export function UpdateHabitForm() {
 
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isPrefilling, setIsPrefilling] = useState(true)
+  const [isPrefilling, setIsPrefilling] = useState(false)
   const [formState, setFormState] = useState<Partial<UpdateHabitFormData>>({
     name: "",
     type: "good",
@@ -76,22 +76,46 @@ export function UpdateHabitForm() {
   })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("PREFILL_TIMEOUT")), ms)
+    })
+
+    return Promise.race([promise, timeoutPromise])
+  }
+
   useEffect(() => {
     let cancelled = false
 
     async function prefillHabit() {
+      if (authLoading) return
+
       if (!session?.access_token || !habitId) {
         if (!cancelled) setIsPrefilling(false)
         return
       }
 
+      if (!cancelled) {
+        setIsPrefilling(true)
+        setError(null)
+      }
+
       try {
-        const { habits } = await getHabits(
-          session.access_token,
-          hasValidSelectedDate ? selectedDateParam ?? undefined : undefined
+        const token = session.access_token
+        const selectedDateValue = hasValidSelectedDate ? selectedDateParam ?? undefined : undefined
+
+        const byDate = await withTimeout(
+          getHabits(token, selectedDateValue),
+          8000
         )
 
-        const existing = habits.find((h) => h.id === habitId)
+        let existing = byDate.habits.find((h) => h.id === habitId)
+
+        // Fallback: habit may not be in selected date snapshot (e.g., edited from another date view).
+        if (!existing) {
+          const allHabits = await withTimeout(getHabits(token), 8000)
+          existing = allHabits.habits.find((h) => h.id === habitId)
+        }
 
         if (!existing) {
           if (!cancelled) {
@@ -112,7 +136,13 @@ export function UpdateHabitForm() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load habit")
+          const message =
+            err instanceof Error && err.message === "PREFILL_TIMEOUT"
+              ? "Loading took too long. You can still edit manually."
+              : err instanceof Error
+                ? err.message
+                : "Failed to load habit"
+          setError(message)
         }
       } finally {
         if (!cancelled) setIsPrefilling(false)
@@ -124,7 +154,18 @@ export function UpdateHabitForm() {
     return () => {
       cancelled = true
     }
-  }, [session?.access_token, habitId, hasValidSelectedDate, selectedDateParam])
+  }, [authLoading, session?.access_token, habitId, hasValidSelectedDate, selectedDateParam])
+
+  // Safety valve: never let prefill spinner linger forever in UI.
+  useEffect(() => {
+    if (!isPrefilling) return
+
+    const timer = setTimeout(() => {
+      setIsPrefilling(false)
+    }, 5000)
+
+    return () => clearTimeout(timer)
+  }, [isPrefilling])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -321,7 +362,7 @@ export function UpdateHabitForm() {
         <Button
           type="submit"
           className="w-full py-6 text-base"
-          disabled={isSubmitting || isPrefilling}
+          disabled={isSubmitting}
         >
           {isSubmitting ? "Updating..." : "Update Habit"}
         </Button>

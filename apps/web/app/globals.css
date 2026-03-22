@@ -160,3 +160,8 @@
     animation: calendarSlidePrev 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
+
+body[data-cost-sheet-open="true"] .tracker-bottom-nav,
+body[data-cost-sheet-open="true"] .tracker-bottom-nav-bg {
+  display: none !important;
+}

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils"
 
 export default function BottomNav() {
   const { canCreate } = useProfile()
+  const [isCostSheetOpen, setIsCostSheetOpen] = useState(false)
 
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -30,10 +32,28 @@ export default function BottomNav() {
     { key: "settings", href: "/dashboard/settings", isHabits: false },
   ]
 
+  useEffect(() => {
+    const onVisibilityChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ open?: boolean }>
+      setIsCostSheetOpen(Boolean(customEvent.detail?.open))
+    }
+
+    window.addEventListener("tracker:cost-sheet-visibility", onVisibilityChange)
+    setIsCostSheetOpen(document.body.getAttribute("data-cost-sheet-open") === "true")
+
+    return () => {
+      window.removeEventListener("tracker:cost-sheet-visibility", onVisibilityChange)
+    }
+  }, [])
+
+  if (isCostSheetOpen) {
+    return null
+  }
+
   return (
     <>
-      <div className="fixed bottom-0 left-0 w-full h-[64px] bg-black z-40" />
-      <div className="fixed bottom-0 left-0 w-full h-[64px] flex items-center justify-center z-50">
+      <div className="tracker-bottom-nav-bg fixed bottom-0 left-0 w-full h-[64px] bg-black z-40" />
+      <div className="tracker-bottom-nav fixed bottom-0 left-0 w-full h-[64px] flex items-center justify-center z-50">
         <div className="bg-black/90 backdrop-blur-md border border-zinc-800 rounded-full px-8 py-3 flex items-center gap-10 shadow-lg">
           {tabs.map((tab) => {
             const isFirst = tab.isHabits
