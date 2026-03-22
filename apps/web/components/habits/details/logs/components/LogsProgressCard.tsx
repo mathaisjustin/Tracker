@@ -6,6 +6,8 @@ type LogsProgressCardProps = {
   progress: number
   goal: number
   streak: number
+  unit?: string
+  type: "good" | "bad"
 }
 
 export function LogsProgressCard({
@@ -14,9 +16,16 @@ export function LogsProgressCard({
   progress,
   goal,
   streak,
+  unit,
+  type,
 }: LogsProgressCardProps) {
 
-  const percent = Math.min((progress / goal) * 100, 100)
+  const hasGoal = goal !== null && goal !== undefined && goal > 0
+  const SOFT_LIMIT = 10 // you can tweak this later
+
+  const percent = hasGoal
+    ? Math.min((progress / goal) * 100, 100)
+    : Math.min((progress / SOFT_LIMIT) * 100, 100)
 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
@@ -26,12 +35,29 @@ export function LogsProgressCard({
 
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-zinc-400">{goalLabel}</p>
+          {hasGoal && goalLabel && (
+            <p className="text-sm text-zinc-400">{goalLabel}</p>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-sm text-green-400">
-          🔥 {streak} day streak
-        </div>
+{hasGoal && (
+  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full 
+    border border-zinc-700 bg-zinc-900">
+
+    <span className="text-sm leading-none opacity-80">
+      {type === "good" ? "🔥" : "🛑"}
+    </span>
+
+    <span className="text-sm text-zinc-200 font-medium">
+      {streak}
+    </span>
+
+    <span className="text-xs text-zinc-500">
+      {type === "good" ? "day streak" : "clean streak"}
+    </span>
+
+  </div>
+)}
 
       </div>
 
@@ -41,14 +67,23 @@ export function LogsProgressCard({
         <div className="h-2 w-full rounded-full bg-zinc-800 overflow-hidden">
           <div
             className="h-full bg-white rounded-full transition-all"
-            style={{ width: `${percent}%` }}
+            style={{
+              width: `${percent}%`,
+            }}
           />
         </div>
 
         {/* Labels */}
         <div className="flex justify-between text-xs text-zinc-500">
-          <span>{progress} cups today</span>
-          <span>{goal} cups goal</span>
+          <span>
+            {progress} {progress === 1 ? unit : `${unit}s`} today
+          </span>
+
+          {hasGoal && (
+            <span>
+              {goal} {goal === 1 ? unit : `${unit}s`} goal
+            </span>
+          )}
         </div>
 
       </div>

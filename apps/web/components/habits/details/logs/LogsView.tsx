@@ -19,29 +19,50 @@ type LogsViewProps = {
     target: number
     progress: number
     completedToday: boolean
+    unit?: string 
+    streak: number
+    type: "good" | "bad"
   }
   entries: LogEntry[]
+
+  onIncrement: () => void
+  onDecrement: () => void
 }
 
-export function LogsView({ habit, entries }: LogsViewProps) {
+export function LogsView({
+  habit,
+  entries,
+  onIncrement,
+  onDecrement,
+}: LogsViewProps) {
   return (
     <div className="space-y-6">
 
       {/* Progress card */}
       <LogsProgressCard
-        title="Daily Water Intake"
-        goalLabel={`Goal: ${habit.target} cups per day`}
+        title={`Daily ${habit.name} Tracker`}
+        goalLabel={
+          habit.target > 0
+            ? `Daily goal: ${habit.target} ${
+                habit.target === 1
+                  ? habit.unit
+                  : `${habit.unit}s`
+              }`
+            : ""
+        }
         progress={habit.progress}
         goal={habit.target}
-        streak={4}
+        streak={habit.streak}
+        unit={habit.unit}
+        type={habit.type}
       />
 
       {/* Input */}
       <LogsInputCard
         value={habit.progress}
-        unit="cups"
-        onIncrement={() => console.log("increment")}
-        onDecrement={() => console.log("decrement")}
+        unit={habit.unit || ""}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
       />
 
       {/* History */}

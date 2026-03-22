@@ -53,7 +53,7 @@ function getRandomColor(): string {
 }
 
 export function CreateHabitForm() {
-  const { user } = useAuth()
+  const { session } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
@@ -101,23 +101,26 @@ export function CreateHabitForm() {
       return
     }
 
-    if (!user?.id) {
+    if (!session?.access_token) {
       setError("You must be signed in to create a habit.")
       return
     }
 
     setIsSubmitting(true)
     try {
-      await createHabit(user.id, {
+      await createHabit(session.access_token, {
         name: result.data.name,
         color: result.data.color,
         type: result.data.type,
         unit: result.data.unit,
         base_cost: result.data.base_cost,
         daily_limit: result.data.daily_limit,
-        created_at: createdAtForSelectedDate,
       })
-      router.push(hasValidSelectedDate ? `/dashboard/habits?date=${selectedDateParam}` : "/dashboard/habits")
+      router.replace(
+        hasValidSelectedDate
+          ? `/dashboard/habits?date=${selectedDateParam}`
+          : "/dashboard/habits"
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create habit")
     } finally {

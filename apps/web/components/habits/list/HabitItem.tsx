@@ -19,12 +19,23 @@ interface HabitItemProps {
 
 function formatProgress(habit: Habit): string {
   if (habit.completed) return "Done"
+
+  const hasGoal = habit.target !== null && habit.target !== undefined
+
+  // 🚫 NO GOAL
+  if (!hasGoal) {
+    return `${habit.current}`
+    // or `${habit.current} done` (your choice)
+  }
+
+  // ✅ HAS GOAL
   if (habit.targetUnit === "steps") {
-    return `${habit.current >= 1000 ? `${habit.current / 1000}k` : habit.current} / ${habit.target}`
+    const currentFormatted =
+      habit.current >= 1000 ? `${habit.current / 1000}k` : habit.current
+
+    return `${currentFormatted} / ${habit.target}`
   }
-  if (habit.targetUnit === "minutes") {
-    return `${habit.current} / ${habit.target}`
-  }
+
   return `${habit.current} / ${habit.target}`
 }
 
@@ -146,10 +157,10 @@ export function HabitItem({ habit, selectedDate, onPlus, onComplete, onArchive, 
           <HabitIcon icon={habit.icon} />
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-white">{habit.name}</p>
-            <p className={cn("flex items-center gap-1 text-sm", streakColor)}>
+            {/* <p className={cn("flex items-center gap-1 text-sm", streakColor)}>
               <StreakIcon className="size-3.5" />
               {streakLabel}
-            </p>
+            </p> */}
           </div>
           <p className="text-sm text-zinc-400">{formatProgress(habit)}</p>
         </div>

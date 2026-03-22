@@ -1,9 +1,15 @@
 "use client"
 
-import { useRef, type PointerEvent, type TouchEvent } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react"
 import { format, startOfWeek, addDays } from "date-fns"
-import { cn } from "@/lib/utils"
-import type { DateStatus } from "@/lib/types/habits"
+
+
+type DateStatus = {
+  date: string
+  hasActivity: boolean
+  completionRate: number
+}
 
 interface DateSelectorProps {
   selectedDate: Date
@@ -20,14 +26,16 @@ export function DateSelector({
 }: DateSelectorProps) {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
 
-  const swipeStartX = useRef<number | null>(null)
-  const swipeHandled = useRef(false)
+  const [direction, setDirection] = useState(0)
   const swipeThreshold = 42
 
   const shiftWeek = (deltaX: number) => {
     if (Math.abs(deltaX) < swipeThreshold) return
-    // Requested behavior: swipe left -> previous week, swipe right -> next week.
-    onSelect(addDays(selectedDate, deltaX > 0 ? -7 : 7))
+
+    const dir = deltaX > 0 ? -1 : 1
+    setDirection(dir)
+
+    onSelect(addDays(selectedDate, dir * 7))
   }
 
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -37,58 +45,9 @@ export function DateSelector({
     return datesWithStatus.find((s) => s.date === dateStr)?.hasActivity ?? false
   }
 
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    swipeStartX.current = event.clientX
-    swipeHandled.current = false
-  }
-
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (swipeStartX.current === null || swipeHandled.current) return
-
-    const deltaX = event.clientX - swipeStartX.current
-    if (Math.abs(deltaX) < swipeThreshold) return
-
-    shiftWeek(deltaX)
-    swipeHandled.current = true
-  }
-
-  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
-    const touch = event.touches[0]
-    if (!touch) return
-    swipeStartX.current = touch.clientX
-    swipeHandled.current = false
-  }
-
-  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
-    if (swipeStartX.current === null || swipeHandled.current) {
-      swipeStartX.current = null
-      swipeHandled.current = false
-      return
-    }
-
-    const touch = event.changedTouches[0]
-    if (!touch) return
-    const deltaX = touch.clientX - swipeStartX.current
-    shiftWeek(deltaX)
-    swipeStartX.current = null
-    swipeHandled.current = false
-  }
-
-  const handlePointerEnd = () => {
-    swipeStartX.current = null
-    swipeHandled.current = false
-  }
-
   return (
     <div
       className="space-y-3 touch-pan-y"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-      onPointerLeave={handlePointerEnd}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       <div className="flex justify-between gap-1">
         {DAY_LABELS.map((label) => (
@@ -100,12 +59,37 @@ export function DateSelector({
           </span>
         ))}
       </div>
-      <div className={cn("flex justify-between gap-1")}>
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={weekStart.toISOString()}
+          custom={direction}
+          initial={{ x: direction > 0 ? 160 : -160, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: direction > 0 ? -160 : 160, opacity: 0 }}
+          transition={{
+            x: { type: "spring", stiffness: 180, damping: 22, mass: 0.8 },
+            opacity: { duration: 0.25 },
+          }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          onDragEnd={(e, { offset, velocity }) => {
+            const swipe = Math.abs(offset.x) > swipeThreshold || Math.abs(velocity.x) > 500
+
+            if (!swipe) return
+
+            shiftWeek(offset.x || velocity.x)
+          }}
+          whileDrag={{ scale: 0.98 }}
+          className="flex justify-between gap-1"
+        >
         {weekDates.map((d) => {
           const hasActivity = getStatusForDate(d)
           const dateStr = format(d, "yyyy-MM-dd")
           const status = datesWithStatus.find((s) => s.date === dateStr)
           const completionRate = Math.max(0, Math.min(1, status?.completionRate ?? 0))
+
+          const isToday =
+            format(d, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
 
           return (
             <button
@@ -125,16 +109,22 @@ export function DateSelector({
                   {format(d, "d")}
                 </span>
               </span>
-              <div className="flex gap-1">
-                <span className={cn("size-1 rounded-full", hasActivity ? "bg-white" : "bg-transparent")} />
-                {format(d, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && (
-                  <span className="size-1 rounded-full bg-white" />
+              <div className="h-2 flex items-center justify-center">
+                {isToday && (
+                  <motion.span
+                    layoutId="today-dot"
+                    className="size-1 rounded-full bg-white"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                  />
                 )}
               </div>
             </button>
           )
         })}
-      </div>
+        </motion.div> 
+      </AnimatePresence> 
     </div>
   )
 }

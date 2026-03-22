@@ -1,14 +1,18 @@
 import { Router } from "express";
-import habitRoutes from "../habits/habits.routes"
-import entryRoutes from "../habits/entries.routes"
-import profileRoutes from "../profile/profile.routes"
+import habitsRoutes from "../habits/routes";
+import entriesRoutes from "../entries/routes";
+import profileRoutes from "../profile/routes";
 
 const router = Router();
 
-router.use("/habits", habitRoutes)
+// Health check endpoint
+router.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
 
-router.use("/entries", entryRoutes)
-
-router.use("/profile", profileRoutes)
+// Module routes
+router.use("/habits", habitsRoutes);
+router.use("/entries", entriesRoutes);
+router.use("/profile", profileRoutes);
 
 export default router;

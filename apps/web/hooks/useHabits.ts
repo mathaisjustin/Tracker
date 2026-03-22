@@ -1,70 +1,33 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format, addDays, startOfWeek } from "date-fns"
-import { useAuth } from "@/lib/AuthProvider"
-import {
-  getHabits,
-  getDateStatuses,
-  logProgress as logProgressRequest,
-  archiveHabit as archiveHabitRequest,
-} from "@/lib/api/habits"
+import { getHabits, archiveHabit as archiveHabitApi } from "@/lib/api/habits"
+import { addEntry } from "@/lib/api/entries"
 import type { Habit } from "@/lib/types/habits"
-import type { DateStatus } from "@/lib/types/habits"
+import { useAuth } from "@/lib/AuthProvider"
 
-function getWeekDates(selectedDate: Date): string[] {
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
-  const dates: string[] = []
-  for (let i = 0; i < 7; i++) {
-    const d = addDays(weekStart, i)
-    dates.push(format(d, "yyyy-MM-dd"))
-  }
-  return dates
-}
+export function useHabits() {
+  const { session } = useAuth()
 
-export function useHabits(initialDate?: Date) {
-  const { user } = useAuth()
-  const [selectedDate, setSelectedDate] = useState(initialDate ?? new Date())
   const [habits, setHabits] = useState<Habit[]>([])
-  const [dateStatuses, setDateStatuses] = useState<DateStatus[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const dateStr = format(selectedDate, "yyyy-MM-dd")
-  const weekStartStr = format(startOfWeek(selectedDate, { weekStartsOn: 0 }), "yyyy-MM-dd")
-  const weekEndStr = format(addDays(startOfWeek(selectedDate, { weekStartsOn: 0 }), 6), "yyyy-MM-dd")
-
   useEffect(() => {
-    if (!user?.id) {
-      setHabits([])
-      const weekDates = getWeekDates(selectedDate)
-      setDateStatuses(
-        weekDates.map((d) => ({
-          date: d,
-          hasActivity: false,
-          completionRate: 0,
-          trackedHabits: 0,
-          totalHabits: 0,
-        }))
-      )
-      return
-    }
-
-    const userId = user.id
-    const weekDates = getWeekDates(selectedDate)
     let cancelled = false
 
     async function fetchData() {
+      if (!session?.access_token) return
+
       setIsLoading(true)
+
       try {
-        const [habitsData, statusesData] = await Promise.all([
-          getHabits(userId, dateStr),
-          getDateStatuses(userId, weekStartStr, weekEndStr),
-        ])
+        const data = await getHabits(session.access_token)
+
         if (!cancelled) {
-          setHabits(habitsData)
-          setDateStatuses(statusesData)
+          setHabits(data)
         }
       } catch (err) {
+        console.error("Failed to fetch habits:", err)
         if (!cancelled) setHabits([])
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -72,109 +35,81 @@ export function useHabits(initialDate?: Date) {
     }
 
     fetchData()
+
     return () => {
       cancelled = true
     }
-  }, [user?.id, dateStr, weekStartStr, weekEndStr])
+  }, [session?.access_token])
 
-  const updateSelectedDateStatusFromHabits = (nextHabits: Habit[]) => {
-    const selectedDateStr = format(selectedDate, "yyyy-MM-dd")
-    const totalHabits = nextHabits.length
-    const trackedHabits = nextHabits.filter((h) => h.current > 0).length
+  /**
+   * Archive habit (optimistic update)
+   */
+  const archiveHabit = async (habitId: string) => {
+    if (!session?.access_token) return
 
-    const completionRate = totalHabits > 0
-      ? nextHabits.reduce((sum, h) => {
-          const targetNum =
-            h.target === "10k" ? 10000
-            : h.target === "30m" ? 30
-            : parseInt(h.target, 10) || 1
-          return sum + Math.min(1, h.current / targetNum)
-        }, 0) / totalHabits
-      : 0
+    const previous = habits
 
-    setDateStatuses((prev) => {
-      const idx = prev.findIndex((d) => d.date === selectedDateStr)
-      if (idx === -1) return prev
+    // ✅ optimistic UI update
+    setHabits((prev) => prev.filter((h) => h.id !== habitId))
 
-      const next = [...prev]
-      next[idx] = {
-        ...next[idx],
-        hasActivity: trackedHabits > 0,
-        trackedHabits,
-        totalHabits,
-        completionRate,
-      }
-      return next
-    })
+    try {
+      await archiveHabitApi(session.access_token, habitId)
+    } catch (err) {
+      console.error("Archive failed:", err)
+
+      // ❌ rollback if failed
+      setHabits(previous)
+    }
   }
 
   const logProgress = async (habitId: string) => {
-    if (!user?.id) return
+    if (!session?.access_token) return
 
-    const todayStr = format(new Date(), "yyyy-MM-dd")
-    if (dateStr !== todayStr) {
-      return
-    }
+    // 🔥 optimistic update
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id !== habitId) return h
 
-    const snapshot = habits
-    const nextHabits = habits.map((h) => {
-      if (h.id !== habitId) return h
-      const next = h.current + 1
-      const targetNum =
-        h.target === "10k"
-          ? 10000
-          : h.target === "30m"
-            ? 30
-            : parseInt(h.target, 10) || 1
-      const completed = next >= targetNum
-      return {
-        ...h,
-        current: Math.min(next, targetNum),
-        completed,
-      }
-    })
+        const next = h.current + 1
+        const hasGoal = h.target !== null && h.target !== undefined
 
-    setHabits(nextHabits)
-    updateSelectedDateStatusFromHabits(nextHabits)
+        return {
+          ...h,
+          current: next,
+          completed: hasGoal ? next >= Number(h.target) : false,
+        }
+      })
+    )
 
     try {
-      await logProgressRequest(user.id, habitId, 1, dateStr)
-    } catch (_err) {
-      setHabits(snapshot)
-      updateSelectedDateStatusFromHabits(snapshot)
-      throw _err
-    }
-  }
+      await addEntry(habitId)
+    } catch (err: any) {
+      console.error("Entry failed:", err)
 
-  const completeHabit = (_habitId: string) => {
-    // Placeholder for backend - could mark as done
-  }
+      // ❌ rollback
+      setHabits((prev) =>
+        prev.map((h) => {
+          if (h.id !== habitId) return h
 
-  const archiveHabit = async (habitId: string) => {
-    const todayStr = format(new Date(), "yyyy-MM-dd")
-    if (dateStr > todayStr) {
-      return
-    }
+          const prevVal = h.current - 1
+          const hasGoal = h.target !== null && h.target !== undefined
 
-    const snapshot = habits
-    setHabits(habits.filter((h) => h.id !== habitId))
+          return {
+            ...h,
+            current: prevVal,
+            completed: hasGoal ? prevVal >= Number(h.target) : false,
+          }
+        })
+      )
 
-    try {
-      await archiveHabitRequest(habitId)
-    } catch (_err) {
-      setHabits(snapshot)
-      throw _err
+      // optional: show toast later
     }
   }
 
   return {
     habits,
-    dateStatuses,
-    selectedDate,
-    setSelectedDate: (d: Date) => setSelectedDate(d),
     isLoading,
-    logProgress,
-    completeHabit,
-    archiveHabit,
+    archiveHabit, // ✅ expose
+    logProgress, // ✅ expose
   }
 }

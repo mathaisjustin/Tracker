@@ -26,15 +26,15 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {},
 })
 
-const SESSION_LIMIT = 60 * 60 * 1000 // 1 hour
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  /* -------------------------------- */
+  /* LOAD PROFILE */
+  /* -------------------------------- */
   const loadProfile = async () => {
     try {
       const profile = await getProfile()
@@ -50,47 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await loadProfile()
   }
 
+  /* -------------------------------- */
+  /* INIT AUTH (ONLY SOURCE OF TRUTH) */
+  /* -------------------------------- */
   useEffect(() => {
-
     const initAuth = async () => {
-
-      const { data } = await supabase.auth.getSession()
-      const session = data.session
-
-      if (!session) {
-        setLoading(false)
-        return
-      }
-
-      const loginTime = localStorage.getItem("login_time")
-
-      if (loginTime) {
-        const now = Date.now()
-
-        if (now - Number(loginTime) > SESSION_LIMIT) {
-          await supabase.auth.signOut()
-          localStorage.removeItem("login_time")
-          setLoading(false)
-          return
-        }
-      }
-
-      const user = session.user
-
-      setSession(session)
-      setUser(user)
-
-      if (session?.access_token) {
-        await loadProfile()
-      }
-
-      setLoading(false)
-    }
-
-    initAuth()
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        const session = data.session
 
         if (!session) {
           setUser(null)
@@ -99,25 +66,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        localStorage.setItem("login_time", Date.now().toString())
-
-        const user = session.user
-
         setSession(session)
-        setUser(user)
+        setUser(session.user)
 
-        loadProfile()
+        // ✅ ONLY HERE we load profile
+        await loadProfile()
+
+      } catch (err) {
+        console.error("Auth init error:", err)
+      } finally {
+        setLoading(false) // ✅ ALWAYS resolve
+      }
+    }
+
+    initAuth()
+
+    /* -------------------------------- */
+    /* AUTH LISTENER (NO PROFILE LOAD) */
+    /* -------------------------------- */
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        console.log("Auth event:", _event)
+
+        if (!session) {
+          setUser(null)
+          setSession(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+
+        // ✅ Just update session/user
+        setSession(session)
+        setUser(session.user)
+
+        // ❌ DO NOT LOAD PROFILE HERE
+        // ❌ DO NOT TOUCH loading here
       }
     )
 
     return () => {
       listener.subscription.unsubscribe()
     }
-
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, loading, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   )
