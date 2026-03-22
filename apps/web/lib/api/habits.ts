@@ -1,4 +1,5 @@
 import type { Habit } from "@/lib/types/habits"
+import type { HabitDetails } from "@/lib/types/habitDetails"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -28,7 +29,6 @@ function mapBackendToHabit(backend: BackendHabit): Habit {
     target: backend.target,
     targetUnit: backend.unit ?? "",
     current: backend.current,
-    // completed = hit the goal (or has entry if no goal)
     completed: backend.target !== null
       ? backend.current >= backend.target
       : backend.has_entry,
@@ -98,7 +98,7 @@ export async function createHabit(
     color: string
     type: "good" | "bad"
     unit: string
-    base_cost?: number      // ← add this
+    base_cost?: number
     daily_limit?: number
   }
 ): Promise<BackendHabit> {
@@ -116,7 +116,6 @@ export async function createHabit(
   const data = await res.json()
 
   if (!res.ok) {
-    // Throw the error code directly so callers can handle it
     throw new Error(data?.error ?? "Failed to create habit")
   }
 
@@ -181,4 +180,63 @@ export async function updateHabit(
   }
 
   return data
+}
+
+/**
+ * GET HABIT DETAILS
+ * GET /api/habits/:id/details
+ */
+export async function getHabitDetails(
+  token: string,
+  habitId: string
+): Promise<HabitDetails> {
+  if (!API_BASE_URL) throw new Error("API URL not configured")
+
+  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/details`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!res.ok) {
+    let message = "Failed to fetch habit details"
+    try {
+      const data = await res.json()
+      message = data?.error ?? message
+    } catch {}
+    throw new Error(message)
+  }
+
+  return res.json() as Promise<HabitDetails>
+}
+
+/**
+ * LOG HABIT ENTRY
+ * POST /api/habits/:id/details/log
+ */
+export async function logHabitEntry(
+  token: string,
+  habitId: string,
+  action: "increment" | "decrement"
+): Promise<{ quantity: number }> {
+  if (!API_BASE_URL) throw new Error("API URL not configured")
+
+  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/details/log`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action }),
+  })
+
+  if (!res.ok) {
+    let message = "Failed to log entry"
+    try {
+      const data = await res.json()
+      message = data?.error ?? message
+    } catch {}
+    throw new Error(message)
+  }
+
+  return res.json() as Promise<{ quantity: number }>
 }

@@ -1,12 +1,9 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { getHabitDetails, logHabitEntry } from "@/lib/api/habits"
+import { useAuth } from "@/lib/AuthProvider"
 import type { HabitDetails } from "@/lib/types/habitDetails"
-
-// import { useState, useEffect } from "react"
-// import { getHabitDetails } from "@/lib/api/habits"
-// import { logHabitEntry } from "@/lib/api/entries"
-// import type { HabitDetails } from "@/lib/types/habitDetails"
-// import { useAuth } from "@/lib/AuthProvider"
 
 type UseHabitDetailsResult = {
   habit: HabitDetails | null
@@ -15,118 +12,113 @@ type UseHabitDetailsResult = {
   decrement: () => Promise<void>
 }
 
-// TODO: Implement once backend handler is ready
-export function useHabitDetails(_habitId: string): UseHabitDetailsResult {
-  // const { session, loading } = useAuth()
+export function useHabitDetails(habitId: string): UseHabitDetailsResult {
+  const { session, loading } = useAuth()
 
-  // const [habit, setHabit] = useState<HabitDetails | null>(null)
-  // const [isLoading, setIsLoading] = useState(true)
+  const [habit, setHabit] = useState<HabitDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // /* -------------------------------- */
-  // /* FETCH DETAILS */
-  // /* -------------------------------- */
+  // ─── Fetch ───────────────────────────────────────────────────────────────────
 
-  // useEffect(() => {
-  //   let cancelled = false
-  //   console.log("EFFECT RUN", { session, loading, habitId })
-  //   async function fetchData() {
-  //     if (loading) {
-  //       setIsLoading(true)
-  //       return
-  //     }
+  useEffect(() => {
+    let cancelled = false
 
-  //     if (!session || !habitId) return
+    async function fetchData() {
+      if (loading) return
+      if (!session || !habitId) {
+        setIsLoading(false)
+        return
+      }
 
-  //     const token = session.access_token
+      setIsLoading(true)
 
-  //     setIsLoading(true)
+      try {
+        const data = await getHabitDetails(session.access_token, habitId)
+        if (!cancelled) setHabit(data)
+      } catch (err) {
+        console.error("Failed to fetch habit details:", err)
+        if (!cancelled) setHabit(null)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
 
-  //     try {
-  //       const data = await getHabitDetails(token, habitId)
+    fetchData()
 
-  //       if (!cancelled) {
-  //         setHabit(data)
-  //       }
-  //     } catch (err) {
-  //       console.error("Failed to fetch habit details:", err)
-  //       if (!cancelled) setHabit(null)
-  //     } finally {
-  //       if (!cancelled) setIsLoading(false)
-  //     }
-  //   }
+    return () => { cancelled = true }
+  }, [session, loading, habitId])
 
-  //   fetchData()
+  // ─── Shared optimistic updater ────────────────────────────────────────────────
 
-  //   return () => {
-  //     cancelled = true
-  //   }
-  // }, [session, loading, habitId])
-
-  // /* -------------------------------- */
-  // /* INCREMENT (+) */
-  // /* -------------------------------- */
-
-  // const increment = async () => {
-  //   if (!session?.access_token || !habit) return
-
-  //   const previous = habit
-
-  //   // ✅ optimistic update
-  //   const nextValue = habit.todayValue + 1
-  //   const goal = habit.goal ?? Infinity
-
-  //   setHabit({
-  //     ...habit,
-  //     todayValue: nextValue,
-  //     progress: Math.min((nextValue / goal) * 100, 100),
-  //   })
-
-  //   try {
-  //     await logHabitEntry(habit.id, "increment", 1)
-  //   } catch (err) {
-  //     console.error("Increment failed:", err)
-
-  //     // ❌ rollback
-  //     setHabit(previous)
-  //   }
-  // }
-
-  // /* -------------------------------- */
-  // /* DECREMENT (−) */
-  // /* -------------------------------- */
-
-  // const decrement = async () => {
-  //   if (!session?.access_token || !habit) return
-
-  //   const previous = habit
-
-  //   const nextValue = Math.max(0, habit.todayValue - 1)
-  //   const goal = habit.goal ?? Infinity
-
-  //   setHabit({
-  //     ...habit,
-  //     todayValue: nextValue,
-  //     progress: Math.min((nextValue / goal) * 100, 100),
-  //   })
-
-  //   try {
-  //     await logHabitEntry(habit.id, "decrement", 1)
-  //   } catch (err) {
-  //     console.error("Decrement failed:", err)
-
-  //     // ❌ rollback
-  //     setHabit(previous)
-  //   }
-  // }
-
-  return {
-    habit: null,
-    isLoading: false,
-    increment: async () => {
-      return
-    },
-    decrement: async () => {
-      return
-    },
+  function applyOptimistic(prev: HabitDetails, nextValue: number): HabitDetails {
+    const goal = prev.goal ?? Infinity
+    return {
+      ...prev,
+      todayValue: nextValue,
+      progress: Math.min((nextValue / goal) * 100, 100),
+      recentEntries: prev.recentEntries.map((entry, i) =>
+        i === 0
+          ? {
+              ...entry,
+              value: nextValue,
+              status:
+                nextValue >= goal
+                  ? "complete"
+                  : nextValue > 0
+                  ? "in_progress"
+                  : "missed",
+            }
+          : entry
+      ),
+    }
   }
+
+  // ─── Shared reconcile after server responds ───────────────────────────────────
+
+  function reconcile(serverValue: number) {
+    setHabit((prev) => {
+      if (!prev) return prev
+      return applyOptimistic(prev, serverValue)
+    })
+  }
+
+  // ─── Increment (+) ────────────────────────────────────────────────────────────
+
+  const increment = async () => {
+    if (!session?.access_token || !habit) return
+
+    const previous = habit
+    const nextValue = habit.todayValue + 1
+
+    setHabit(applyOptimistic(habit, nextValue))
+
+    try {
+      const result = await logHabitEntry(session.access_token, habit.id, "increment")
+      reconcile(result.quantity)
+    } catch (err) {
+      console.error("Increment failed:", err)
+      setHabit(previous)
+    }
+  }
+
+  // ─── Decrement (−) ────────────────────────────────────────────────────────────
+
+  const decrement = async () => {
+    if (!session?.access_token || !habit) return
+
+    const previous = habit
+    const nextValue = Math.max(0, habit.todayValue - 1)
+
+    setHabit(applyOptimistic(habit, nextValue))
+
+    try {
+      const result = await logHabitEntry(session.access_token, habit.id, "decrement")
+      reconcile(result.quantity)
+    } catch (err) {
+      console.error("Decrement failed:", err)
+      setHabit(previous)
+    }
+  }
+
+  return { habit, isLoading, increment, decrement }
 }

@@ -5,11 +5,14 @@ export interface HabitDetails {
   unit: string
   goal: number | null
   type: "good" | "bad"
-
   streak: number
-
   todayValue: number
   progress: number
+
+  // these 3 are new
+  bestDay: number
+  avgPerDay: number
+  weeklyData: number[]
 
   recentEntries: {
     date: string

@@ -1,31 +1,23 @@
+// habits/routes/details.ts
+// Mounted at: /api/habits/:habitId/details  (via habits/routes/index.ts)
+// authMiddleware is applied at the parent router level — no need to repeat here
+
 import { Router } from "express";
-// import { getHabitDetails, archiveHabit } from "../controller/details";
-import statsRoutes from "./stats";
+import { getHabitDetails, logHabitEntry } from "../controller/details";
 
-const router = Router({ mergeParams: true });
-
-// authMiddleware: Add when you implement authentication
-// router.use(authMiddleware);
+const router = Router({ mergeParams: true }); // mergeParams exposes :habitId from parent
 
 /**
  * GET /api/habits/:habitId/details
- * Get detailed information about a specific habit
- * Shows: basic info, current progress, recent entries, streaks
+ * Full habit data for the detail page
  */
-// TODO: Uncomment when controller is ready
-// router.get("/", getHabitDetails);
+router.get("/", getHabitDetails);
 
 /**
- * PATCH /api/habits/:habitId/details/archive
- * Archive a specific habit
+ * POST /api/habits/:habitId/details/log
+ * Increment or decrement today's entry
+ * Body: { action: "increment" | "decrement" }
  */
-// TODO: Uncomment when controller is ready
-// router.patch("/archive", archiveHabit);
-
-/**
- * Nested routes for habit statistics
- * /api/habits/:habitId/stats
- */
-router.use("/stats", statsRoutes);
+router.post("/log", logHabitEntry);
 
 export default router;

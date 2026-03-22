@@ -16,7 +16,6 @@ import { useHabitDetails } from "@/hooks/useHabitDetails"
 
 type View = "logs" | "stats"
 
-
 type EntryStatus = "complete" | "partial" | "missed" | "progress"
 
 type LogEntry = {
@@ -27,7 +26,6 @@ type LogEntry = {
 }
 
 export default function HabitDetailsPage() {
-  console.log("HabitDetailsPage rendered")
   const { session, loading } = useAuth()
   const router = useRouter()
   const params = useParams()
@@ -45,23 +43,27 @@ export default function HabitDetailsPage() {
     return <div className="p-4 text-zinc-400">Unauthorized</div>
   }
 
-  if (isLoading || !habit) {
+  if (isLoading) {
     return <div className="p-4 text-zinc-400">Loading...</div>
   }
 
-  const handleArchive = async () => {
-    if (!session?.access_token || !habit) return
+  if (!habit) {
+    return <div className="p-4 text-zinc-400">Habit not found</div>
+  }
 
+  const handleArchive = async () => {
+    if (!session?.access_token) return
     try {
       await archiveHabit(session.access_token, habit.id)
-
-      // ✅ UX: go back after archive
       router.back()
-
     } catch (err) {
       console.error("Archive failed:", err)
     }
   }
+
+  // ─── Map HabitDetails → LogsView shape ───────────────────────────────────────
+  // bestDay, avgPerDay, weeklyData, color are now passed through so
+  // LogsView can feed them into HabitDetailCard (no-goal variant)
 
   const mappedHabit = {
     name: habit.name,
@@ -72,9 +74,14 @@ export default function HabitDetailsPage() {
         ? habit.todayValue >= habit.goal
         : false,
     streak: habit.streak,
-    completions: habit.recentEntries.filter((entry) => entry.status === "complete").length,
-    unit: habit.unit, 
+    completions: habit.recentEntries.filter((e) => e.status === "complete").length,
+    unit: habit.unit,
     type: habit.type,
+    // ↓ these three feed HabitDetailCard when there's no goal
+    bestDay: habit.bestDay,
+    avgPerDay: habit.avgPerDay,
+    weeklyData: habit.weeklyData,
+    color: habit.color,
   }
 
   const mappedEntries: LogEntry[] = habit.recentEntries.map((entry) => ({
@@ -90,30 +97,26 @@ export default function HabitDetailsPage() {
   return (
     <div className="min-h-screen p-4 pb-28 flex flex-col">
 
-      {/* HEADER */}
       <HabitDetailsHeader
         name={habit.name}
         onArchive={handleArchive}
       />
-      {/* MAIN CONTENT */}
-      <div className="flex-1">
 
+      <div className="flex-1">
         {view === "logs" && (
-        <LogsView
-          habit={mappedHabit}
-          entries={mappedEntries}
-          onIncrement={increment}
-          onDecrement={decrement}
-        />
+          <LogsView
+            habit={mappedHabit}
+            entries={mappedEntries}
+            onIncrement={increment}
+            onDecrement={decrement}
+          />
         )}
 
         {view === "stats" && (
-        <StatsView habit={mappedHabit} />
+          <StatsView habit={mappedHabit} />
         )}
-
       </div>
 
-      {/* BOTTOM SWITCH */}
       <HabitDetailsSwitch view={view} onChange={setView} />
 
     </div>
