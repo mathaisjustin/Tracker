@@ -5,9 +5,7 @@ type LogsProgressCardProps = {
   goalLabel: string
   progress: number
   goal: number
-  streak: number
   unit?: string
-  type: "good" | "bad"
 }
 
 export function LogsProgressCard({
@@ -15,9 +13,7 @@ export function LogsProgressCard({
   goalLabel,
   progress,
   goal,
-  streak,
   unit,
-  type,
 }: LogsProgressCardProps) {
 
   const hasGoal = goal !== null && goal !== undefined && goal > 0
@@ -31,7 +27,7 @@ export function LogsProgressCard({
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
 
       {/* Top row */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start">
 
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -39,25 +35,6 @@ export function LogsProgressCard({
             <p className="text-sm text-zinc-400">{goalLabel}</p>
           )}
         </div>
-
-{hasGoal && (
-  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full 
-    border border-zinc-700 bg-zinc-900">
-
-    <span className="text-sm leading-none opacity-80">
-      {type === "good" ? "🔥" : "🛑"}
-    </span>
-
-    <span className="text-sm text-zinc-200 font-medium">
-      {streak}
-    </span>
-
-    <span className="text-xs text-zinc-500">
-      {type === "good" ? "day streak" : "clean streak"}
-    </span>
-
-  </div>
-)}
 
       </div>
 

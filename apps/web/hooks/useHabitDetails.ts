@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { format } from "date-fns"
 import { getHabitDetails, logHabitEntry } from "@/lib/api/habits"
 import { useAuth } from "@/lib/AuthProvider"
 import type { HabitDetails } from "@/lib/types/habitDetails"
@@ -12,11 +13,18 @@ type UseHabitDetailsResult = {
   decrement: () => Promise<void>
 }
 
-export function useHabitDetails(habitId: string): UseHabitDetailsResult {
+export function useHabitDetails(
+  habitId: string,
+  selectedDate?: string // YYYY-MM-DD, defaults to today
+): UseHabitDetailsResult {
   const { session, loading } = useAuth()
 
   const [habit, setHabit] = useState<HabitDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const dateStr = selectedDate ?? format(new Date(), "yyyy-MM-dd")
+  const todayStr = format(new Date(), "yyyy-MM-dd")
+  const isReadOnly = dateStr !== todayStr
 
   // ─── Fetch ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +41,7 @@ export function useHabitDetails(habitId: string): UseHabitDetailsResult {
       setIsLoading(true)
 
       try {
-        const data = await getHabitDetails(session.access_token, habitId)
+        const data = await getHabitDetails(session.access_token, habitId, dateStr)
         if (!cancelled) setHabit(data)
       } catch (err) {
         console.error("Failed to fetch habit details:", err)
@@ -46,7 +54,7 @@ export function useHabitDetails(habitId: string): UseHabitDetailsResult {
     fetchData()
 
     return () => { cancelled = true }
-  }, [session, loading, habitId])
+  }, [session, loading, habitId, dateStr])
 
   // ─── Shared optimistic updater ────────────────────────────────────────────────
 
@@ -73,8 +81,6 @@ export function useHabitDetails(habitId: string): UseHabitDetailsResult {
     }
   }
 
-  // ─── Shared reconcile after server responds ───────────────────────────────────
-
   function reconcile(serverValue: number) {
     setHabit((prev) => {
       if (!prev) return prev
@@ -85,7 +91,8 @@ export function useHabitDetails(habitId: string): UseHabitDetailsResult {
   // ─── Increment (+) ────────────────────────────────────────────────────────────
 
   const increment = async () => {
-    if (!session?.access_token || !habit) return
+    // Hard block — never mutate past/future dates
+    if (isReadOnly || !session?.access_token || !habit) return
 
     const previous = habit
     const nextValue = habit.todayValue + 1
@@ -104,7 +111,8 @@ export function useHabitDetails(habitId: string): UseHabitDetailsResult {
   // ─── Decrement (−) ────────────────────────────────────────────────────────────
 
   const decrement = async () => {
-    if (!session?.access_token || !habit) return
+    // Hard block — never mutate past/future dates
+    if (isReadOnly || !session?.access_token || !habit) return
 
     const previous = habit
     const nextValue = Math.max(0, habit.todayValue - 1)

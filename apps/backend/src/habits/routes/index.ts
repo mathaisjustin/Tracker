@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../../middleware/auth";
 import { getHabits, createHabit, updateHabit, deleteHabit, archiveHabit } from "../controller/habits";
 import detailsRoutes from "./details";
+import statsRoutes from "./stats";
 
 // authMiddleware: Add when you implement authentication
 // router.use(authMiddleware);
@@ -47,5 +48,7 @@ router.delete("/:id", deleteHabit);
  * /api/habits/:habitId/stats
  */
 router.use("/:habitId/details", detailsRoutes);
+
+router.use("/:habitId/stats", statsRoutes);
 
 export default router;

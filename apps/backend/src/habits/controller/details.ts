@@ -19,8 +19,14 @@ export const getHabitDetails = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "habitId is required" });
   }
 
+  // Optional ?date=YYYY-MM-DD — defaults to today inside the service
+  const date =
+    typeof req.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+      ? req.query.date
+      : undefined;
+
   try {
-    const data = await getHabitDetailsService(habitId, userId);
+    const data = await getHabitDetailsService(habitId, userId, date);
     return res.json(data);
   } catch (err: any) {
     if (err.message === "HABIT_NOT_FOUND") {

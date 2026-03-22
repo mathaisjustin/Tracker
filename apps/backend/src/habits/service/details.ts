@@ -32,9 +32,12 @@ export interface HabitDetailsResult {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Returns YYYY-MM-DD for a given Date */
+/** Returns YYYY-MM-DD using LOCAL date (avoids UTC timezone shift) */
 function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 /** Derives entry status given a value and an optional goal */
@@ -59,7 +62,8 @@ function deriveStatus(
 
 export const getHabitDetailsService = async (
   habitId: string,
-  userId: string
+  userId: string,
+  date?: string // YYYY-MM-DD, defaults to today
 ): Promise<HabitDetailsResult> => {
   // 1. Fetch habit row — verify ownership
   const { data: habit, error: habitError } = await supabase
@@ -79,8 +83,8 @@ export const getHabitDetailsService = async (
     ? (habit.created_at as string).slice(0, 10)
     : "1970-01-01";
 
-  // 2. Today's date and current week range (Mon → Sun)
-  const today = new Date();
+  // 2. "Today" from the requested date param (or real today if absent)
+  const today = date ? new Date(date + "T00:00:00") : new Date();
   const todayStr = toDateStr(today);
 
   // Build Sun–Sat window containing today
@@ -199,7 +203,8 @@ export const logHabitEntryService = async (
   userId: string,
   action: "increment" | "decrement"
 ): Promise<{ quantity: number }> => {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   // Verify habit ownership
   const { data: habit, error: habitError } = await supabase

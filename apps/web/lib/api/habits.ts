@@ -29,9 +29,10 @@ function mapBackendToHabit(backend: BackendHabit): Habit {
     target: backend.target,
     targetUnit: backend.unit ?? "",
     current: backend.current,
+    // completed = hit the goal; no-goal habits are never 'completed'
     completed: backend.target !== null
       ? backend.current >= backend.target
-      : backend.has_entry,
+      : false,
     streak: 0,
     streakType: "streak",
     color: backend.color,
@@ -188,14 +189,21 @@ export async function updateHabit(
  */
 export async function getHabitDetails(
   token: string,
-  habitId: string
+  habitId: string,
+  date?: string // YYYY-MM-DD, defaults to today on the backend
 ): Promise<HabitDetails> {
   if (!API_BASE_URL) throw new Error("API URL not configured")
 
-  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/details`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  })
+  const params = new URLSearchParams()
+  if (date) params.set("date", date)
+
+  const res = await fetch(
+    `${API_BASE_URL}/habits/${habitId}/details?${params.toString()}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  )
 
   if (!res.ok) {
     let message = "Failed to fetch habit details"
@@ -239,4 +247,52 @@ export async function logHabitEntry(
   }
 
   return res.json() as Promise<{ quantity: number }>
+}
+
+export interface HabitStats {
+  summary: {
+    bestDay: { date: string; value: number }
+    completionRate: { thisMonth: number; thisYear: number }
+    goalStat:
+      | { type: "perfectDays"; value: number }
+      | { type: "longestStreak"; value: number }
+    totalEntries: number
+  }
+  calendar: {
+    month: string
+    days: { date: string; value: number; progress: number }[]
+  }
+  momentum: {
+    score: number
+    delta: number
+    personalBest: { score: number; weekOf: string }
+    weeklyPoints: { weekOf: string; score: number }[]
+  }
+  heatmap: {
+    weekOf: string
+    days: { date: string; value: number; intensity: number }[]
+  }[]
+}
+
+export async function getHabitStats(
+  token: string,
+  habitId: string
+): Promise<HabitStats> {
+  if (!API_BASE_URL) throw new Error("API URL not configured")
+
+  const res = await fetch(`${API_BASE_URL}/habits/${habitId}/stats`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!res.ok) {
+    let message = "Failed to fetch habit stats"
+    try {
+      const data = await res.json()
+      message = data?.error ?? message
+    } catch {}
+    throw new Error(message)
+  }
+
+  return res.json() as Promise<HabitStats>
 }

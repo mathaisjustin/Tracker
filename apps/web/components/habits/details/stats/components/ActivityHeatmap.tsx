@@ -25,21 +25,17 @@ export default function ActivityHeatmap({ title, weeks }: Props) {
 
       {/* Heatmap */}
 
-<div className="flex flex-col gap-[4px] w-full">
-
+<div className="flex flex-row gap-[4px] w-full">
   {weeks.map((week, w) => (
-    <div key={w} className="flex gap-[4px]">
-
+    <div key={w} className="flex flex-col gap-[4px] flex-1">
       {week.map((value, d) => (
         <div
           key={d}
-          className={`w-[12px] h-[12px] rounded-[3px] ${intensityMap[value]}`}
+          className={`aspect-square w-full rounded-[3px] ${intensityMap[value]}`}
         />
       ))}
-
     </div>
   ))}
-
 </div>
 
       {/* Legend */}

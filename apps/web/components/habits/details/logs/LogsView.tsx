@@ -31,6 +31,7 @@ type LogsViewProps = {
   entries: LogEntry[]
   onIncrement: () => void
   onDecrement: () => void
+  isReadOnly?: boolean
 }
 
 export function LogsView({
@@ -38,18 +39,13 @@ export function LogsView({
   entries,
   onIncrement,
   onDecrement,
+  isReadOnly = false,
 }: LogsViewProps) {
   const hasGoal = habit.target > 0
-
-  // Keep today (last index) in sync with current progress
-  const weeklyData = habit.weeklyData
-    ? [...habit.weeklyData.slice(0, 6), habit.progress]
-    : Array(7).fill(0).map((_, i) => i === 6 ? habit.progress : 0)
 
   return (
     <div className="space-y-6">
 
-      {/* Progress card — swaps based on whether habit has a goal */}
       {hasGoal ? (
         <LogsProgressCard
           title={`Daily ${habit.name} Tracker`}
@@ -58,9 +54,7 @@ export function LogsView({
           }`}
           progress={habit.progress}
           goal={habit.target}
-          streak={habit.streak}
           unit={habit.unit}
-          type={habit.type}
         />
       ) : (
         <HabitDetailCard
@@ -70,21 +64,19 @@ export function LogsView({
           todayValue={habit.progress}
           bestDay={habit.bestDay ?? habit.progress}
           avgPerDay={habit.avgPerDay ?? habit.progress}
-          weeklyData={weeklyData}
-          streak={habit.streak}
+          weeklyData={habit.weeklyData ?? [0, 0, 0, 0, 0, 0, habit.progress]}
           color={habit.color ?? "#e879a0"}
         />
       )}
 
-      {/* Input */}
       <LogsInputCard
         value={habit.progress}
         unit={habit.unit || ""}
         onIncrement={onIncrement}
         onDecrement={onDecrement}
+        isReadOnly={isReadOnly}
       />
 
-      {/* History */}
       <LogsHistoryCard entries={entries} />
 
     </div>

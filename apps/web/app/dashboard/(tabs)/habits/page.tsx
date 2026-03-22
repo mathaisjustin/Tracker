@@ -49,7 +49,7 @@ export default function HabitsPage() {
         router.push(`/dashboard/habits/${habitId}/update?date=${selectedDateParam}`)
       }
       onOpenHabit={(habitId) =>
-        router.push(`/dashboard/habits/${habitId}`)
+        router.push(`/dashboard/habits/${habitId}?date=${selectedDateParam}`)
       }
       isLoading={isLoading}
     />
